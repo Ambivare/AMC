@@ -1,0 +1,21 @@
+name = "sk-elevators-worker"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Cron triggers — all times in UTC, mapped to IST (UTC+5:30)
+[triggers]
+crons = [
+  "30 2 1 * *",   # 8:00 AM IST 1st of month — monthly maintenance reminder
+  "30 3 * * *",   # 9:00 AM IST  — AMC expiry reminder
+  "35 3 * * *",   # 9:05 AM IST  — AMC installment reminder
+  "0 4 * * *",    # 9:30 AM IST  — billing overdue reminder
+  "30 4 * * *",   # 10:00 AM IST — daily preventive maintenance alert to techs
+]
+
+# Secrets — add these in Cloudflare Dashboard → Worker → Settings → Variables
+# (or via: wrangler secret put SECRET_NAME)
+#
+#   WORKER_SECRET       — any random string; same value the Vue app sends as X-API-Key
+#   SA_EMAIL            — Firebase service account email  (from service account JSON)
+#   SA_PRIVATE_KEY      — Firebase service account private_key field (keep the \n chars)
+#   FIREBASE_PROJECT_ID — avantelevators-dff70

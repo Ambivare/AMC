@@ -1,0 +1,40 @@
+{
+  "appId": "com.sk.elevators",
+  "appName": "S.K Elevators",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#0a0a14",
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_notification",
+      "iconColor": "#0a2540",
+      "sound": "default"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0a0a14",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0a0a14"
+    },
+    "Camera": {
+      "permissions": ["camera"]
+    },
+    "Filesystem": {
+      "androidPath": "DOCUMENTS"
+    }
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

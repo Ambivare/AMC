@@ -1,0 +1,13 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Any authenticated Firebase session (anonymous or real) may read/write
+    // storage.  The app always calls signInAnonymously() before uploads, so
+    // request.auth will never be null for legitimate app traffic.
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

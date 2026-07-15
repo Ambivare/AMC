@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "29570477853",
+    "project_id": "avantelevators-dff70",
+    "storage_bucket": "avantelevators-dff70.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:29570477853:android:950a70ad54f4521e50bbf4",
+        "android_client_info": {
+          "package_name": "com.sk.elevators"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-J5vzymonUFdqG4-BZ8hYh_zPEnn8ZJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

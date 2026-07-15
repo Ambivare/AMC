@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // ─── users / employees ──────────────────────────────────────────────────
+    match /users/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /employees/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+
+    // ─── projects (client / lift sites) ─────────────────────────────────────
+    match /projects/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /projectTimeline/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+
+    // ─── maintenance ─────────────────────────────────────────────────────────
+    match /maintenance/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /checklistItems/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /inspections/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+
+    // ─── AMC ─────────────────────────────────────────────────────────────────
+    match /amc/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /amcMonthlyMaintenance/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+
+    // ─── billing ──────────────────────────────────────────────────────────────
+    match /quotations/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /purchaseOrders/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /proformaInvoices/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /taxInvoices/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /bom/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /materials/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /vendors/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+
+    // ─── activity feed ────────────────────────────────────────────────────────
+    match /activities/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+
+    // ─── settings / configuration ────────────────────────────────────────────
+    match /settings/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /configurations/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+    match /pdfCache/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+
+    // ─── push notifications ──────────────────────────────────────────────────
+    match /fcmTokens/{docId} {
+      allow read, create, update, delete: if isAuth();
+    }
+
+    // ─── Deny everything else ────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

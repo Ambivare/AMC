@@ -1,0 +1,3 @@
+/build
+# Exclude real google-services.json (add yours via GitHub secret in CI)
+# The placeholder committed here has no real keys

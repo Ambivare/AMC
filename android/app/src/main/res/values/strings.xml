@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">S.K Elevators</string>
+    <string name="title_activity_main">S.K Elevators</string>
+    <string name="package_name">com.sk.elevators</string>
+    <string name="custom_url_scheme">com.sk.elevators</string>
+</resources>
