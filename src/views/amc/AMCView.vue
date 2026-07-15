@@ -274,6 +274,12 @@
                     <button v-else class="btn-secondary btn-sm" @click.stop="regenerateAndDownloadReceipt(lg)" title="Generate Receipt">
                       <Download :size="11" /> Receipt
                     </button>
+                    <button
+                      class="btn-secondary btn-sm"
+                      style="color:#25D366;"
+                      @click.stop="shareLogOnWhatsApp(lg, month.key)"
+                      title="Send Receipt via WhatsApp"
+                    ><MessageCircle :size="11" /> WhatsApp</button>
                   </div>
                 </div>
                 <!-- Inspection status -->
@@ -1626,7 +1632,7 @@ import {
   Plus, Search, Pencil, Trash2, Save, Download, Mail,
   ClipboardList, FileText, FileDown, CalendarCheck, RefreshCw,
   CheckCircle2, FolderOpen, Upload, DollarSign, FilePlus2, AlertTriangle,
-  ClipboardCheck, Eye, TrendingUp
+  ClipboardCheck, Eye, TrendingUp, MessageCircle
 } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
@@ -1646,6 +1652,7 @@ import { create, update } from '@/firebase/firestore'
 import { usePDF } from '@/composables/usePDF'
 import { useExport } from '@/composables/useExport'
 import { convertHtmlToPdf, triggerDownload } from '@/composables/usePdfApiService'
+import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
 
 const ui = useUIStore()
 const authStore = useAuthStore()
@@ -1828,6 +1835,27 @@ async function regenerateAndDownloadReceipt(log) {
     const url = await generateMaintenanceReceipt(log)
     if (url && log.id) await editLog(log.id, { receiptUrl: url })
   } catch { ui.error('Could not generate receipt.') }
+}
+
+async function shareLogOnWhatsApp(log, monthKey) {
+  const phone = selectedContract.value?.clientPhone
+  const chatUrl = whatsAppChatUrl(phone, buildCompletionMessage(monthKey))
+  if (!chatUrl) {
+    ui.error('No valid phone number saved for this client. Add one in the AMC contract.')
+    return
+  }
+  try {
+    let url = log.receiptUrl
+    if (!url) {
+      url = await generateMaintenanceReceipt(log)
+      if (url && log.id) await editLog(log.id, { receiptUrl: url })
+    }
+    if (url) {
+      triggerDownload(url, 'AMC-Receipt-' + (selectedContract.value?.clientName || '') + '-' + monthKey + '.pdf')
+    }
+  } catch { ui.error('Could not generate receipt.') }
+  window.open(chatUrl, '_blank')
+  ui.info('WhatsApp opened — attach the downloaded receipt in the chat.')
 }
 
 // View modal

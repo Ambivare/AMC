@@ -1,0 +1,90 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [claude/sk-elevators-module-app-e7uxah, main]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout (android/ is committed — no cap add needed) ──────────────
+      - uses: actions/checkout@v4
+
+      # ── 2. Node 22 ───────────────────────────────────────────────────────────
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # ── 3. Java 21 ───────────────────────────────────────────────────────────
+      # Capacitor 7 auto-generates capacitor.build.gradle with:
+      #   sourceCompatibility JavaVersion.VERSION_21
+      #   targetCompatibility JavaVersion.VERSION_21
+      # Java 17 causes "error: invalid source release: 21" — must use 21.
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # ── 4. Android SDK licences ───────────────────────────────────────────────
+      # ubuntu-latest already has android-35, build-tools;35.0.0 pre-installed.
+      # Only need to accept licences — no sdkmanager install step needed.
+      - name: Accept Android SDK licences
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+
+      # ── 5. Gradle cache ───────────────────────────────────────────────────────
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      # ── 6. Install npm deps ───────────────────────────────────────────────────
+      # --legacy-peer-deps needed because some Capacitor plugins have peer dep conflicts
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # ── 7. Build web app ─────────────────────────────────────────────────────
+      - name: Build Vite web app
+        run: npm run build
+
+      # ── 8. Sync web assets into android/ ─────────────────────────────────────
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      # ── 9. google-services.json (optional override from secret) ───────────────
+      # The real avantelevators-dff70 config is already committed in
+      # android/app/google-services.json. To point the build at a different
+      # Firebase project instead, add the file as a secret:
+      # repo → Settings → Secrets → GOOGLE_SERVICES_JSON
+      - name: Override google-services.json (if secret set)
+        env:
+          GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES" ]; then
+            echo "$GOOGLE_SERVICES" > android/app/google-services.json
+            echo "✅ google-services.json overridden from secret"
+          fi
+
+      # ── 10. Build debug APK ───────────────────────────────────────────────────
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      # ── 11. Upload APK ────────────────────────────────────────────────────────
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SK-Elevators-v${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

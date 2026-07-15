@@ -161,6 +161,14 @@
                   >
                     <Eye :size="10" /> Inspection
                   </button>
+                  <button
+                    class="btn-secondary btn-sm"
+                    style="font-size:10px;color:#25D366;"
+                    @click.stop="shareVisitOnWhatsApp(visit, contract.clientPhone)"
+                    title="Send Receipt via WhatsApp"
+                  >
+                    <MessageCircle :size="10" /> WhatsApp
+                  </button>
                 </div>
               </div>
               <span :class="['badge', visitStatusBadge(visit.status || 'completed')]">{{ visit.status || 'completed' }}</span>
@@ -878,7 +886,7 @@ import { ref, computed, watch } from 'vue'
 import {
   ClipboardList, Plus, Search, Pencil, Trash2, CheckCircle,
   ChevronDown, ChevronRight, Shield, FileText, FileDown, FolderOpen,
-  Save, Upload, CalendarCheck, Eye, ClipboardCheck
+  Save, Upload, CalendarCheck, Eye, ClipboardCheck, MessageCircle
 } from 'lucide-vue-next'
 import DataTable from '@/components/ui/DataTable.vue'
 import AppModal from '@/components/ui/AppModal.vue'
@@ -894,6 +902,7 @@ import { Collections } from '@/firebase/collections'
 import { usePDF } from '@/composables/usePDF'
 import { useExport } from '@/composables/useExport'
 import { triggerDownload, convertHtmlToPdf } from '@/composables/usePdfApiService'
+import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
 
 const ui = useUIStore()
 const activity = useActivityStore()
@@ -1474,6 +1483,23 @@ async function generateAmcReceipt(log) {
   const url = await convertHtmlToPdf(html, filename, log.contractNumber || 'receipt')
   triggerDownload(url, filename)
   return url
+}
+
+async function shareVisitOnWhatsApp(visit, phone) {
+  const chatUrl = whatsAppChatUrl(phone, buildCompletionMessage(visit.monthKey))
+  if (!chatUrl) {
+    ui.error('No valid phone number saved for this client. Add one in the AMC contract.')
+    return
+  }
+  try {
+    if (visit.receiptUrl) {
+      triggerMaintDownload(visit.receiptUrl, 'AMC-Receipt-' + (visit.contractNumber || visit.clientName) + '-' + visit.monthKey + '.pdf')
+    } else {
+      await generateAmcReceipt(visit)
+    }
+  } catch { ui.error('Could not generate receipt.') }
+  window.open(chatUrl, '_blank')
+  ui.info('WhatsApp opened — attach the downloaded receipt in the chat.')
 }
 
 // ── Completion modal ──────────────────────────────────────────────────
