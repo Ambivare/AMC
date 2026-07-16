@@ -903,6 +903,7 @@ import { usePDF } from '@/composables/usePDF'
 import { useExport } from '@/composables/useExport'
 import { triggerDownload, convertHtmlToPdf } from '@/composables/usePdfApiService'
 import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
+import { notifyWorker } from '@/utils/notifyWorker'
 
 const ui = useUIStore()
 const activity = useActivityStore()
@@ -1399,6 +1400,7 @@ async function saveMonthCompletion() {
       completedDate: visitDate,
     }
     const newLogId = await addAmcVisit(logData)
+    notifyWorker('amc_monthly_completed', { ...logData, id: newLogId, status: 'completed' }, { status: 'pending' })
     ui.success('Month marked as completed.')
     try {
       const receiptUrl = await generateAmcReceipt(logData)

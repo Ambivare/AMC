@@ -1653,6 +1653,7 @@ import { usePDF } from '@/composables/usePDF'
 import { useExport } from '@/composables/useExport'
 import { convertHtmlToPdf, triggerDownload } from '@/composables/usePdfApiService'
 import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
+import { notifyWorker } from '@/utils/notifyWorker'
 
 const ui = useUIStore()
 const authStore = useAuthStore()
@@ -2763,6 +2764,7 @@ async function saveLog() {
     }
     const newLogId = await addLog(logData)
     activity.log({ action: 'created', module: 'amcMonthlyMaintenance', tab: 'AMC', summary: `Logged AMC visit for ${selectedContract.value?.clientName}`, details: { contractNo: selectedContract.value?.contractNumber, clientName: selectedContract.value?.clientName, month: logData.monthKey, technician: logData.technician } })
+    notifyWorker('amc_monthly_log_created', { ...logData, id: newLogId })
     ui.success('Maintenance visit logged.')
     showLogModal.value = false
     // Auto-generate receipt and save URL back to log record
@@ -3401,6 +3403,7 @@ async function savePayment() {
       paidAmount: newPaid,
     })
     activity.log({ action: 'payment', module: 'amc', tab: 'AMC', summary: `Recorded payment for AMC ${payTarget.value.contractNumber || payTarget.value.clientName}`, details: { contractNo: payTarget.value.contractNumber, clientName: payTarget.value.clientName, paymentAmount: payForm.value.amount } })
+    notifyWorker('amc_payment', { ...payTarget.value, paymentHistory: updatedHistory }, { paymentHistory: existing })
     ui.success(`Payment of Rs. ${Number(payForm.value.amount).toLocaleString('en-IN')} logged.`)
     payModal.value = false
   } catch { ui.error('Failed to log payment') }

@@ -4,6 +4,18 @@ import { useActivityStore } from '@/stores/activity'
 import { useUIStore } from '@/stores/ui'
 import { useSecurityStore } from '@/stores/security'
 import { useAuthStore } from '@/stores/auth'
+import { notifyWorker } from '@/utils/notifyWorker'
+
+// Maps { collection: { logInfo.action: workerNotifyType } } — see /workers/src/notify.js
+const NOTIFY_TYPES = {
+  amc:              { created: 'amc_created' },
+  maintenance:      { created: 'maintenance_created' },
+  quotations:       { created: 'quotation_created' },
+  proformaInvoices: { created: 'proforma_created' },
+  taxInvoices:      { created: 'tax_invoice_created' },
+  purchaseOrders:   { created: 'po_created' },
+  projects:         { created: 'project_created' },
+}
 
 export function useCollection(colName, { autoLoad = true, orderByField = null } = {}) {
   const items = ref([])
@@ -56,6 +68,8 @@ export function useCollection(colName, { autoLoad = true, orderByField = null } 
       ? { collection: colName, operation: 'create', docId: id, previousState: null }
       : null
     _doLog(logInfo, id, undoData)
+    const notifyType = logInfo && NOTIFY_TYPES[colName]?.[logInfo.action]
+    if (notifyType) notifyWorker(notifyType, { ...data, id })
     await load()
     return id
   }
