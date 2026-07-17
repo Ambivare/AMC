@@ -32,7 +32,7 @@ export function useCollection(colName, { autoLoad = true, orderByField = null } 
       // Guard against a stuck/unreachable Firestore connection (e.g. poor
       // network in a WebView) leaving the loading skeleton up forever.
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 20000)
+        setTimeout(() => reject(new Error('timeout')), 12000)
       )
       const data = await Promise.race([getAll(colName), timeout])
       if (version !== loadVersion) return

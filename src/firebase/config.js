@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 import { getStorage } from 'firebase/storage'
 
@@ -17,11 +17,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 
 export const db      = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-  // Android WebView (Capacitor) and some restrictive networks can't sustain the
-  // default streaming connection — Firestore hangs retrying it forever, which
-  // is why pages gated behind a `loading` flag (Projects, etc.) got stuck.
-  // Auto-detecting long-polling makes it fall back reliably instead.
+  // persistentMultipleTabManager() negotiates a "primary tab" lease across
+  // browser tabs via IndexedDB/BroadcastChannel — a single Capacitor WebView
+  // is never a real multi-tab environment, and that lease negotiation can
+  // hang forever there, which is why every page depending on Firestore reads
+  // got stuck loading permanently. Single-tab manager avoids that entirely.
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() }),
+  // Android WebView and some restrictive networks can't sustain the default
+  // streaming connection either — Firestore hangs retrying it forever instead
+  // of failing fast. Auto-detecting long-polling makes it fall back reliably.
   experimentalAutoDetectLongPolling: true,
   useFetchStreams: false,
 })
