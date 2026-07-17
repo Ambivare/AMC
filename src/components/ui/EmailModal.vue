@@ -210,7 +210,7 @@ async function init() {
     const company = bc?.company || {}
     form.value.to          = row.clientEmail || ''
     form.value.cc          = ''
-    form.value.subject     = `${DOC_LABEL_MAP[props.templateKey] || 'Document'} ${row.docNumber || ''} — ${company.name || 'S.K Elevators'}`
+    form.value.subject     = `${DOC_LABEL_MAP[props.templateKey] || 'Document'} ${row.docNumber || ''} — ${company.name || 'TAB Elevators'}`
     form.value.attachPdf   = true
     form.value.attachExcel = true
   } catch (e) {

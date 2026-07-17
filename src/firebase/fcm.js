@@ -220,7 +220,7 @@ async function initWebFCM(userId, role, userName) {
         new Notification(title, {
           body,
           icon: '/favicon.png',
-          tag: payload.data?.type || 'sk-elevators',
+          tag: payload.data?.type || 'tab-elevators',
           data: payload.data,
         })
       }

@@ -132,7 +132,7 @@ async function buildWorkbook(row, templateKey) {
   const halfGst = Math.round(gstAmt / 2)
 
   const wb = new ExcelJS.Workbook()
-  wb.creator = company.name || 'S.K Elevators'
+  wb.creator = company.name || 'TAB Elevators'
   wb.created = new Date()
 
   const ws = wb.addWorksheet('Invoice', {
@@ -186,7 +186,7 @@ async function buildWorkbook(row, templateKey) {
     ws.getRow(1).height = 36
     ws.mergeCells(1, 1, 3, 6)
     const hCell = ws.getCell(1, 1)
-    hCell.value = company.name || 'S.K Elevators'
+    hCell.value = company.name || 'TAB Elevators'
     hCell.font = { name: 'Arial', size: 18, bold: true }
     hCell.alignment = { vertical: 'middle', horizontal: 'center' }
     for (let r = 1; r <= 3; r++) {
@@ -510,7 +510,7 @@ async function buildWorkbook(row, templateKey) {
   if (tcLines.length) {
     tcLines.forEach((l, i) => addTextRow(`${i + 1}. ${l}`, true))
   } else {
-    addTextRow('1. All payments shall be payable in favor of "' + (company.name || 'S.K Elevators') + '"', true)
+    addTextRow('1. All payments shall be payable in favor of "' + (company.name || 'TAB Elevators') + '"', true)
     addTextRow(`2. Validity of this offer : ${row.validUntil ? formatDate(row.validUntil) : '30 Days from Date Of Quotation'}`, true)
     addTextRow('3. This quotation is based on the cost of materials and spares ruling on the date of quotation and subject to revision on any change in cost.', true)
     addTextRow('4. Any additional work not included in the quotation, if found necessary at the time of actual execution, will be intimated to the owner about extra charges.', true)
@@ -552,7 +552,7 @@ async function buildWorkbook(row, templateKey) {
   ws.mergeCells(currentRow, 4, currentRow, 6)
   const sigFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } }
   const sigL = ws.getCell(currentRow, 1)
-  sigL.value = 'For ' + (company.name || 'S.K Elevators')
+  sigL.value = 'For ' + (company.name || 'TAB Elevators')
   sigL.font = { name: 'Arial', size: 10, bold: true }
   sigL.fill = sigFill
   sigL.alignment = { horizontal: 'center', vertical: 'middle' }

@@ -4,7 +4,7 @@ import { getAll, update, create } from '@/firebase/firestore'
 import { Collections } from '@/firebase/collections'
 
 const DEFAULTS = {
-  name: 'S.K Elevators',
+  name: 'TAB Elevators',
   address: '',
   phone: '',
   email: '',

@@ -21,13 +21,13 @@ messaging.onBackgroundMessage((payload) => {
   const { title, body, icon } = payload.notification || {}
   const data = payload.data || {}
 
-  self.registration.showNotification(title || 'S.K Elevators', {
+  self.registration.showNotification(title || 'TAB Elevators', {
     body:             body || '',
     icon:             icon || '/favicon.png',
     badge:            '/favicon.png',
     data,
     requireInteraction: false,
-    tag:              data.type || 'sk-elevators-notification',
+    tag:              data.type || 'tab-elevators-notification',
   })
 })
 

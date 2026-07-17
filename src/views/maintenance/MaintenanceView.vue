@@ -1420,7 +1420,7 @@ async function saveMonthCompletion() {
 function _buildMaintReceiptHtml(log, company) {
   const headerUrl = company?.headerUrl || company?.logoUrl || ''
   const footerUrl = company?.footerUrl || ''
-  const companyName = company?.name || 'S.K Elevators'
+  const companyName = company?.name || 'TAB Elevators'
   const dateStr = log.date
     ? new Date(log.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
     : '—'

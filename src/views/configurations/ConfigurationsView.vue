@@ -7,7 +7,7 @@
           <Settings2 :size="22" style="display:inline;margin-right:8px;vertical-align:-4px;" />
           Configurations
         </h1>
-        <p class="page-sub">Fine-tune S.K Elevators to work exactly your way.</p>
+        <p class="page-sub">Fine-tune TAB Elevators to work exactly your way.</p>
       </div>
       <button class="btn-primary" @click="saveAll" :disabled="saving">
         <Loader2 v-if="saving" :size="14" style="animation:spin 1s linear infinite;" />
@@ -42,7 +42,7 @@
       <div class="form-grid">
         <div class="form-group form-full">
           <label class="label">Company Name</label>
-          <input v-model="config.company.name" class="input" placeholder="S.K Elevators Pvt. Ltd." />
+          <input v-model="config.company.name" class="input" placeholder="TAB Elevators Pvt. Ltd." />
         </div>
         <div class="form-group">
           <label class="label">Tagline <span style="font-weight:400;color:var(--ct-muted);">(optional)</span></label>
@@ -242,7 +242,7 @@
       </div>
       <div class="form-group">
         <label class="label">From Name</label>
-        <input v-model="emailConfig.fromName" class="input" placeholder="S.K Elevators" />
+        <input v-model="emailConfig.fromName" class="input" placeholder="TAB Elevators" />
       </div>
       <div class="form-group">
         <label class="label">Email / Username</label>
@@ -695,7 +695,7 @@ function previewEmailTemplate() {
     .replace(/\{\{doc\.number\}\}/g, 'Q-2024-001')
     .replace(/\{\{doc\.date\}\}/g, new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }))
     .replace(/\{\{doc\.total\}\}/g, '₹1,00,000')
-    .replace(/\{\{company\.name\}\}/g, co.name || 'S.K Elevators')
+    .replace(/\{\{company\.name\}\}/g, co.name || 'TAB Elevators')
     .replace(/\{\{company\.email\}\}/g, co.email || 'info@skelevators.com')
     .replace(/\{\{company\.phone\}\}/g, co.phone || '+91 98765 43210')
   showEmailPreview.value = true
@@ -717,7 +717,7 @@ function previewAmcEmailTemplate() {
     .replace(/\{\{contract\.value\}\}/g, '₹36,000')
     .replace(/\{\{contract\.duration\}\}/g, '12 months')
     .replace(/\{\{contract\.type\}\}/g, 'Comprehensive')
-    .replace(/\{\{company\.name\}\}/g, co.name || 'S.K Elevators')
+    .replace(/\{\{company\.name\}\}/g, co.name || 'TAB Elevators')
     .replace(/\{\{company\.email\}\}/g, co.email || 'info@skelevators.com')
     .replace(/\{\{company\.phone\}\}/g, co.phone || '+91 98765 43210')
   showAmcEmailPreview.value = true
@@ -1007,7 +1007,7 @@ function previewTemplate(key) {
     // Company
     .replace(/\{\{company\.logo\}\}/g, `<img src="/static/logo.png" alt="Logo" style="max-height:55px;object-fit:contain;" onerror="this.style.display='none'">`)
     .replace(/\{\{company\.headerImg\}\}/g, '')
-    .replace(/\{\{company\.name\}\}/g, co.name || 'S.K Elevators Pvt. Ltd.')
+    .replace(/\{\{company\.name\}\}/g, co.name || 'TAB Elevators Pvt. Ltd.')
     .replace(/\{\{company\.tagline\}\}/g, co.tagline || 'Quality Elevators for Every Need')
     .replace(/\{\{company\.cin\}\}/g, co.cin || 'U45209MH2010PTC123456')
     .replace(/\{\{company\.address\}\}/g, addr)

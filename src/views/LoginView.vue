@@ -6,9 +6,9 @@
       <!-- Left branding -->
       <div class="login-brand">
         <div class="brand-logo">
-          <img src="/favicon.png" alt="S.K Elevators" style="width:36px;height:36px;object-fit:contain;" onerror="this.style.display='none'" />
+          <img src="/favicon.png" alt="TAB Elevators" style="width:36px;height:36px;object-fit:contain;" onerror="this.style.display='none'" />
         </div>
-        <h1 class="brand-title">S.K Elevators</h1>
+        <h1 class="brand-title">TAB Elevators</h1>
         <p class="brand-subtitle">AMC &amp; Maintenance Manager</p>
         <div class="brand-stats">
           <div class="brand-stat" v-for="s in stats" :key="s.label">

@@ -10,7 +10,7 @@
         />
       </div>
       <div class="logo-text" v-show="ui.sidebarOpen">
-        <span class="logo-name">{{ company.name || 'S.K Elevators' }}</span>
+        <span class="logo-name">{{ company.name || 'TAB Elevators' }}</span>
         <span class="logo-tag">AMC Manager</span>
       </div>
     </div>

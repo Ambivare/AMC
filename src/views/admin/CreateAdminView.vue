@@ -2,7 +2,7 @@
   <div class="admin-setup-wrap">
     <div class="admin-setup-card">
       <div class="brand">
-        <div class="brand-name">S.K Elevators</div>
+        <div class="brand-name">TAB Elevators</div>
         <div class="brand-sub">Admin Account Management</div>
       </div>
 

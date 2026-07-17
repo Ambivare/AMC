@@ -280,7 +280,7 @@ export async function drawReceiptDocFooter(doc) {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(6.5)
       doc.setTextColor(107, 114, 128)
-      doc.text('Computer Generated Document · S.K Elevators', MARGIN, PAGE_H - 4)
+      doc.text('Computer Generated Document · TAB Elevators', MARGIN, PAGE_H - 4)
       doc.text(`Page ${i} / ${total}`, PAGE_W - MARGIN, PAGE_H - 4, { align: 'right' })
     }
   }

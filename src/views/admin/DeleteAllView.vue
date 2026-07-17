@@ -18,7 +18,7 @@
           <div class="da-logo">
             <Trash2 :size="20" style="color:#f87171;" /> Data Manager
           </div>
-          <div class="da-sub">Firebase admin tool — S.K Elevators</div>
+          <div class="da-sub">Firebase admin tool — TAB Elevators</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <span class="da-badge-admin">Admin</span>

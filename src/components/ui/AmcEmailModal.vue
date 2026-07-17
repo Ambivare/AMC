@@ -178,7 +178,7 @@ async function init() {
     const company = companyConfig.value || {}
     form.value.to      = row.clientEmail || ''
     form.value.cc      = ''
-    form.value.subject = `AMC Contract ${row.contractNumber || ''} — ${company.name || 'S.K Elevators'}`
+    form.value.subject = `AMC Contract ${row.contractNumber || ''} — ${company.name || 'TAB Elevators'}`
   } catch (e) {
     console.error('[AmcEmailModal] init error', e)
   } finally {
