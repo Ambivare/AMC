@@ -18,6 +18,12 @@ const app = initializeApp(firebaseConfig)
 
 export const db      = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  // Android WebView (Capacitor) and some restrictive networks can't sustain the
+  // default streaming connection — Firestore hangs retrying it forever, which
+  // is why pages gated behind a `loading` flag (Projects, etc.) got stuck.
+  // Auto-detecting long-polling makes it fall back reliably instead.
+  experimentalAutoDetectLongPolling: true,
+  useFetchStreams: false,
 })
 export const auth    = getAuth(app)
 export const storage = getStorage(app)

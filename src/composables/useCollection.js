@@ -29,12 +29,19 @@ export function useCollection(colName, { autoLoad = true, orderByField = null } 
     const version = ++loadVersion
     loading.value = true
     try {
-      const data = await getAll(colName)
+      // Guard against a stuck/unreachable Firestore connection (e.g. poor
+      // network in a WebView) leaving the loading skeleton up forever.
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 20000)
+      )
+      const data = await Promise.race([getAll(colName), timeout])
       if (version !== loadVersion) return
       items.value = data
       if (orderByField) {
         items.value.sort((a, b) => (b[orderByField] || '').localeCompare(a[orderByField] || ''))
       }
+    } catch (e) {
+      if (version === loadVersion) ui.error(e?.message === 'timeout' ? 'Connection is slow — check your network.' : 'Failed to load data.')
     } finally {
       if (version === loadVersion) loading.value = false
     }
