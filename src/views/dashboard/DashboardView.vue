@@ -66,7 +66,44 @@
         <div v-if="!recentActivity.length" class="detail-empty">No recent activity yet</div>
       </div>
     </div>
+
+    <!-- Configurations (password-gated) -->
+    <div class="config-gate-row">
+      <button class="btn-secondary btn-sm config-gate-btn" @click="openConfigGate">
+        <Settings :size="13" /> Configurations
+      </button>
+    </div>
   </div>
+
+  <!-- Configurations password gate -->
+  <Teleport to="body">
+    <div v-if="showConfigGate" class="modal-backdrop" @click.self="closeConfigGate" style="z-index:300;">
+      <div class="modal-panel" style="max-width:360px;width:100%;">
+        <div class="modal-header">
+          <div>
+            <h2 style="font-size:16px;font-weight:700;color:var(--ct-primary);margin:0;">Configurations Access</h2>
+            <p style="font-size:12px;color:var(--ct-muted);margin:4px 0 0;">Enter password to continue</p>
+          </div>
+          <button @click="closeConfigGate" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);color:var(--ct-muted);cursor:pointer;">
+            <X :size="16" />
+          </button>
+        </div>
+        <div class="modal-body">
+          <input
+            v-model="configGatePassword"
+            type="password"
+            class="input"
+            placeholder="Password"
+            style="width:100%;"
+            @keydown.enter="submitConfigGate"
+            autofocus
+          />
+          <div v-if="configGateError" style="color:#f87171;font-size:12px;margin-top:8px;">{{ configGateError }}</div>
+          <button class="btn-primary btn-sm" style="width:100%;margin-top:14px;" @click="submitConfigGate">Unlock</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 
   <!-- Card Detail Modal -->
   <Teleport to="body">
@@ -156,21 +193,45 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore, ROLES } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import { useSettingsStore } from '@/stores/settings'
 import { useActivityStore } from '@/stores/activity'
 import { getAll } from '@/firebase/firestore'
 import { Collections } from '@/firebase/collections'
-import { RefreshCw, Shield, Wrench, Receipt, X } from 'lucide-vue-next'
+import { RefreshCw, Shield, Wrench, Receipt, X, Settings } from 'lucide-vue-next'
 import StatCard from './StatCard.vue'
+
+const CONFIG_GATE_PASSWORD = '102005'
 
 const auth = useAuthStore()
 const ui = useUIStore()
 const settings = useSettingsStore()
 const activityStore = useActivityStore()
 const route = useRoute()
+const router = useRouter()
+
+const showConfigGate = ref(false)
+const configGatePassword = ref('')
+const configGateError = ref('')
+
+function openConfigGate() {
+  configGatePassword.value = ''
+  configGateError.value = ''
+  showConfigGate.value = true
+}
+function closeConfigGate() {
+  showConfigGate.value = false
+}
+function submitConfigGate() {
+  if (configGatePassword.value === CONFIG_GATE_PASSWORD) {
+    showConfigGate.value = false
+    router.push('/configurations')
+  } else {
+    configGateError.value = 'Incorrect password.'
+  }
+}
 
 const roleLabel = computed(() => ROLES[auth.user?.role]?.label || 'User')
 const firstName = computed(() => (auth.user?.fullName || auth.user?.username || '').split(' ')[0])
@@ -305,6 +366,10 @@ watch(() => route.path, (path) => {
 .dash-actions { display: flex; gap: 8px; }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.config-gate-row { display: flex; justify-content: center; margin-top: 24px; }
+.config-gate-btn { opacity: 0.55; }
+.config-gate-btn:hover { opacity: 1; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
 

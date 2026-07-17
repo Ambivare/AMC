@@ -1561,7 +1561,13 @@ async function loadDefaultChecklist() {
   margin-bottom: 24px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   padding-bottom: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
 }
+.config-tabs::-webkit-scrollbar { display: none; }
 
 .config-tab {
   display: flex;
@@ -1577,6 +1583,12 @@ async function loadDefaultChecklist() {
   cursor: pointer;
   transition: all 0.18s;
   border-radius: 8px 8px 0 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .config-tab { padding: 8px 12px; font-size: 12px; }
 }
 .config-tab:hover { color:var(--ct-sub); }
 .config-tab.active { color:var(--ct-accent); border-bottom-color: #6366f1; background: rgba(99,102,241,0.06); }

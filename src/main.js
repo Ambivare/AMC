@@ -22,6 +22,12 @@ const app    = createApp(App)
 const pinia  = createPinia()
 app.use(pinia)
 app.use(router)
+app.config.errorHandler = (err, instance, info) => {
+  console.error('[Vue error]', info, err)
+}
+router.onError((err) => {
+  console.error('[Router error]', err)
+})
 app.mount('#app')
 
 // Register router and UI store so FCM notification taps can navigate + toast
