@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "build": "echo 'no build step needed for a Cloudflare Worker'",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
