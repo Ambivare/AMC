@@ -1,4 +1,5 @@
 <template>
+  <div>
   <div class="page-container">
     <!-- Greeting -->
     <div class="dash-greeting">
@@ -150,6 +151,7 @@
       </div>
     </transition>
   </Teleport>
+  </div>
 </template>
 
 <script setup>
