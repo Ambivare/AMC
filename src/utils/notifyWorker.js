@@ -11,8 +11,8 @@
  * silently no-ops so the app keeps working without a deployed Worker.
  */
 
-const WORKER_URL    = 'https://sk-elevators-worker.YOUR_SUBDOMAIN.workers.dev'
-const WORKER_SECRET = 'YOUR_WORKER_SECRET'
+const WORKER_URL    = 'https://sk.sid55036124.workers.dev'
+const WORKER_SECRET = 'Qoptwppy'
 
 const isConfigured = !WORKER_URL.includes('YOUR_SUBDOMAIN') && WORKER_SECRET !== 'YOUR_WORKER_SECRET'
 
