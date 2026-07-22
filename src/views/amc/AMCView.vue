@@ -1654,7 +1654,6 @@ import { useActivityStore } from '@/stores/activity'
 import { savePDF } from '@/utils/saveFile'
 import { useAuthStore } from '@/stores/auth'
 import { Collections } from '@/firebase/collections'
-import { create, update } from '@/firebase/firestore'
 import { usePDF } from '@/composables/usePDF'
 import { useExport } from '@/composables/useExport'
 import { convertHtmlToPdf, triggerDownload } from '@/composables/usePdfApiService'
@@ -1915,7 +1914,7 @@ async function saveInstPayEdit() {
   const newPaid = history.reduce((s, p) => s + Number(p.amount || 0), 0)
   amcSaving.value = true
   try {
-    await update(Collections.AMC, contractId, { paymentHistory: history, paidAmount: newPaid })
+    await edit(contractId, { paymentHistory: history, paidAmount: newPaid })
     activity.log({ action: 'updated', module: 'amc', tab: 'AMC', summary: `Edited installment payment for ${contract.clientName || contract.contractNumber}`, details: { contractNo: contract.contractNumber, clientName: contract.clientName } })
     ui.success('Payment updated.')
     editingInstPay.value = null
@@ -3331,7 +3330,7 @@ async function saveEditPay() {
   const newPaid = history.reduce((s, p) => s + Number(p.amount || 0), 0)
   amcSaving.value = true
   try {
-    await update(Collections.AMC, payTarget.value.id, { paymentHistory: history, paidAmount: newPaid })
+    await edit(payTarget.value.id, { paymentHistory: history, paidAmount: newPaid })
     ui.success('Payment entry updated.')
     editPayIdx.value = -1
   } catch { ui.error('Failed to update payment entry.') }
@@ -3355,14 +3354,17 @@ async function savePayment() {
     }
     const updatedHistory = [...existing, newEntry]
     const newPaid = updatedHistory.reduce((s, p) => s + Number(p.amount || 0), 0)
-    await update(Collections.AMC, payTarget.value.id, {
+    await edit(payTarget.value.id, {
       paymentHistory: updatedHistory,
       paidAmount: newPaid,
     })
     activity.log({ action: 'payment', module: 'amc', tab: 'AMC', summary: `Recorded payment for AMC ${payTarget.value.contractNumber || payTarget.value.clientName}`, details: { contractNo: payTarget.value.contractNumber, clientName: payTarget.value.clientName, paymentAmount: payForm.value.amount } })
     notifyWorker('amc_payment', { ...payTarget.value, paymentHistory: updatedHistory }, { paymentHistory: existing })
     ui.success(`Payment of Rs. ${Number(payForm.value.amount).toLocaleString('en-IN')} logged.`)
-    payModal.value = false
+    // Reset the form but keep the modal open so the payment history list
+    // (and the new Download Receipt button) immediately show the update.
+    payForm.value = { amount: 0, date: new Date().toISOString().slice(0, 10), method: 'cash', reference: '', note: '' }
+    payInstallmentIdx.value = -1
   } catch { ui.error('Failed to log payment') }
   finally { amcSaving.value = false }
 }
