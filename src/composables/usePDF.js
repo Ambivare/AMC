@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import { Capacitor } from '@capacitor/core'
 import { getAll } from '@/firebase/firestore'
 import { Collections } from '@/firebase/collections'
+import { getLogoDataUri } from '@/utils/pdfLogo'
 
 // ── Page constants ───────────────────────────────────────────────────────────
 const PAGE_W  = 210
@@ -394,8 +395,9 @@ export async function getCompanyAndUser() {
       inspectionHtml = sorted[0].inspectionHtml || ''
     }
   } catch { /* non-blocking */ }
+  const logoFallback = company.value.logoUrl || await getLogoDataUri()
   return {
-    company: company.value,
+    company: { ...company.value, logoUrl: logoFallback },
     userName: auth.user?.fullName || auth.user?.name || 'System',
     contractHtml,
     amcRenewalHtml,

@@ -6,11 +6,15 @@
           <Receipt :size="22" style="display:inline;margin-right:8px;vertical-align:-4px;" />
           Billing
         </h1>
-        <p class="page-sub">Quotes, proforma invoices, purchase orders &amp; tax invoices — all in one place.</p>
+        <p class="page-sub">Installation proposals, quotes, proforma invoices, purchase orders &amp; tax invoices — all in one place.</p>
       </div>
     </div>
 
     <div class="tabs-nav" style="margin-bottom:24px;">
+      <button :class="['tab-btn', activeTab === 'installation' && 'active']" @click="activeTab = 'installation'">
+        <ClipboardList :size="14" style="display:inline;margin-right:4px;" />
+        Installation Proposal
+      </button>
       <button :class="['tab-btn', activeTab === 'quotations' && 'active']" @click="activeTab = 'quotations'">
         <FileText :size="14" style="display:inline;margin-right:4px;" />
         Quotations
@@ -30,8 +34,9 @@
     </div>
 
     <div class="table-container" style="padding:20px;">
+      <InstallationProposalsTab v-if="activeTab === 'installation'" />
       <QuotationsTab
-        v-if="activeTab === 'quotations'"
+        v-else-if="activeTab === 'quotations'"
         ref="quotationsTabRef"
         @convert-to-pi="handleConvertToPI"
       />
@@ -48,13 +53,14 @@
 
 <script setup>
 import { ref, nextTick } from 'vue'
-import { Receipt, FileText, FileCheck, ShoppingCart } from 'lucide-vue-next'
+import { Receipt, FileText, FileCheck, ShoppingCart, ClipboardList } from 'lucide-vue-next'
+import InstallationProposalsTab from './tabs/InstallationProposalsTab.vue'
 import QuotationsTab from './tabs/QuotationsTab.vue'
 import ProformaInvoicesTab from './tabs/ProformaInvoicesTab.vue'
 import PurchaseOrdersTab from './tabs/PurchaseOrdersTab.vue'
 import TaxInvoicesTab from './tabs/TaxInvoicesTab.vue'
 
-const activeTab = ref('quotations')
+const activeTab = ref('installation')
 const quotationsTabRef = ref(null)
 const proformaTabRef = ref(null)
 const taxTabRef = ref(null)

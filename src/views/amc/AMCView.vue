@@ -1148,6 +1148,14 @@
             <input v-model.number="contractPdfForm.numberOfLifts" class="input" type="number" min="1" />
           </div>
           <div class="form-group">
+            <label class="label">Passenger Type</label>
+            <select v-model="contractPdfForm.passengerType" class="input">
+              <option value="Passenger">Passenger</option>
+              <option value="Non-Passenger (Goods Lift)">Non-Passenger (Goods Lift)</option>
+              <option value="Passenger cum Goods">Passenger cum Goods</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label class="label">Non-Comp AMC Offer</label>
             <input v-model="contractPdfForm.nonCompAmc" class="input" placeholder="e.g. Rs. 14,160 PER LIFT*/-" />
           </div>
@@ -1661,6 +1669,8 @@ import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
 import { notifyWorker } from '@/utils/notifyWorker'
 import { SERVICE_CHECKLIST_LEFT, SERVICE_CHECKLIST_RIGHT, defaultServiceChecklist, generateServiceReportPdf } from '@/utils/serviceReport'
 import { generatePaymentReceiptPdf } from '@/utils/paymentReceipt'
+import { defaultContractTemplate } from '@/utils/contractTemplate'
+import { numberToWords } from '@/composables/useBillingPDF'
 
 const ui = useUIStore()
 const authStore = useAuthStore()
@@ -2335,6 +2345,7 @@ function openContractPdf(row) {
     finalAmc: saved.finalAmc || (row.contractValue ? `Rs. ${Number(row.contractValue).toLocaleString('en-IN')} PER LIFT*/- Per Annum` : ''),
     paymentTerms: saved.paymentTerms || '100% ADVANCE',
     duration: saved.duration || '12 MONTHS FROM DATE OF CONTRACT',
+    passengerType: saved.passengerType || 'Passenger',
   }
   contractPdfEditEnabled.value = !row.contractPdfUrl
   showContractPdfModal.value = true
@@ -2344,17 +2355,27 @@ async function generateContractPdf() {
   contractPdfGenerating.value = true
   try {
     const ctx = await _getCtx()
-    const template = ctx?.contractHtml || ''
-    if (!template.trim()) {
-      ui.error('No contract template found. Please add the HTML template in Configurations → Contract Format.')
-      return
-    }
+    const template = ctx?.contractHtml?.trim() || defaultContractTemplate()
     const row = contractPdfTarget.value
     const f = contractPdfForm.value
     const dateStr = f.date ? new Date(f.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-') : ''
+    const company = ctx?.company || {}
+    const isComp = !!row?.isComprehensive
+    const contractType = isComp ? 'Comprehensive' : 'Non-Comprehensive'
+    const periodStr = [formatDate(row?.startDate), formatDate(row?.endDate)].filter(Boolean).join(' to ')
+    const gstPercent = Number(row?.gstPercent) || 0
+    const contractValue = Number(row?.contractValue) || 0
+    const gstAmount = Number(row?.gstAmount) || 0
+    const totalValue = Number(row?.totalWithGST) || (contractValue + gstAmount)
 
     let html = template
+    html = html.replaceAll('{{company.logo}}', company.logoUrl ? `<img src="${company.logoUrl}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;">` : '')
+    html = html.replaceAll('{{company.name}}', company.name || '')
+    html = html.replaceAll('{{company.address}}', [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', '))
+    html = html.replaceAll('{{company.phone}}', company.phone || '')
+    html = html.replaceAll('{{company.email}}', company.email || '')
     html = html.replaceAll('{{LETTER_DATE}}', dateStr)
+    html = html.replaceAll('{{REF_NO}}', row?.contractNumber || '')
     html = html.replaceAll('{{CLIENT_NAME}}', row?.clientName || '')
     html = html.replaceAll('{{CLIENT_ADDRESS}}', (row?.clientAddress || '').replace(/\n/g, ', '))
     html = html.replaceAll('{{CONTACT_PERSON}}', row?.contactPerson || '')
@@ -2365,6 +2386,14 @@ async function generateContractPdf() {
     html = html.replaceAll('{{LIFT_LOAD}}', f.liftLoad || '')
     html = html.replaceAll('{{LIFT_HEIGHT}}', f.liftHeight || '')
     html = html.replaceAll('{{NUM_LIFTS}}', String(f.numberOfLifts || 1))
+    html = html.replaceAll('{{PASSENGER_TYPE}}', f.passengerType || 'Passenger')
+    html = html.replaceAll('{{CONTRACT_TYPE}}', contractType)
+    html = html.replaceAll('{{CONTRACT_PERIOD}}', periodStr || '—')
+    html = html.replaceAll('{{CONTRACT_VALUE}}', formatCurrency(contractValue))
+    html = html.replaceAll('{{GST_PERCENT}}', String(gstPercent))
+    html = html.replaceAll('{{GST_AMOUNT}}', formatCurrency(gstAmount))
+    html = html.replaceAll('{{TOTAL_VALUE}}', formatCurrency(totalValue))
+    html = html.replaceAll('{{AMOUNT_WORDS}}', numberToWords(totalValue).toUpperCase())
     html = html.replaceAll('{{OFFER_NON_COMP}}', f.nonCompAmc || '')
     html = html.replaceAll('{{OFFER_DISCOUNT}}', f.discountAmount || '')
     html = html.replaceAll('{{OFFER_FINAL}}', f.finalAmc || '')
@@ -2376,6 +2405,15 @@ async function generateContractPdf() {
       html = html.replace(/<!--\s*DISCOUNT_ROW_START\s*-->[\s\S]*?<!--\s*DISCOUNT_ROW_END\s*-->/g, '')
     } else {
       html = html.replace(/<!--\s*DISCOUNT_ROW_START\s*-->/g, '').replace(/<!--\s*DISCOUNT_ROW_END\s*-->/g, '')
+    }
+
+    // Strip whichever comprehensive/non-comprehensive block doesn't apply
+    if (isComp) {
+      html = html.replace(/<!--\s*NONCOMP_START\s*-->[\s\S]*?<!--\s*NONCOMP_END\s*-->/g, '')
+      html = html.replace(/<!--\s*COMP_START\s*-->/g, '').replace(/<!--\s*COMP_END\s*-->/g, '')
+    } else {
+      html = html.replace(/<!--\s*COMP_START\s*-->[\s\S]*?<!--\s*COMP_END\s*-->/g, '')
+      html = html.replace(/<!--\s*NONCOMP_START\s*-->/g, '').replace(/<!--\s*NONCOMP_END\s*-->/g, '')
     }
 
     const contractNo = row?.contractNumber || row?.id || 'CONTRACT'

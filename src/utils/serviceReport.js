@@ -70,6 +70,10 @@ export async function generateServiceReportPdf({
   const PW = 297, ML = 10, MR = 287
   const CW = MR - ML
 
+  if (company.logoUrl?.startsWith?.('data:image')) {
+    try { doc.addImage(company.logoUrl, 'PNG', MR - 18, 6, 18, 18) } catch { /* ignore bad image data */ }
+  }
+
   let y = 12
   // Company name + address
   doc.setFont('helvetica', 'bold').setFontSize(20).setTextColor(15, 23, 42)

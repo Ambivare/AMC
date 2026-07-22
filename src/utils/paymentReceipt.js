@@ -45,9 +45,14 @@ export async function generatePaymentReceiptPdf({
   doc.setFont('helvetica', 'normal').setFontSize(9)
   doc.text(`DATE: ${fmtDate(date)}`, ML + 3, 19)
 
-  // Top-right: company block
+  // Top-right: logo + company block
+  const hasLogo = company.logoUrl?.startsWith?.('data:image')
+  const logoW = hasLogo ? 12 : 0
+  if (hasLogo) {
+    try { doc.addImage(company.logoUrl, 'PNG', MR - logoW, 6, logoW, logoW) } catch { /* ignore bad image data */ }
+  }
   doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(29, 78, 216)
-  doc.text(company.name || 'TAB Elevators', MR - 3, 12, { align: 'right' })
+  doc.text(company.name || 'TAB Elevators', MR - logoW - (hasLogo ? 3 : 0), 12, { align: 'right' })
   doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(71, 85, 105)
   const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
   const addrLines = doc.splitTextToSize(addr || '', 110)

@@ -22,6 +22,7 @@ export const Collections = {
   SALARY_SLIPS: 'salarySlips',
   SALARY_CONFIG: 'salaryConfig',
   QUOTATIONS: 'quotations',
+  INSTALLATION_PROPOSALS: 'installationProposals',
   PURCHASE_ORDERS: 'purchaseOrders',
   PROFORMA_INVOICES: 'proformaInvoices',
   TAX_INVOICES: 'taxInvoices',

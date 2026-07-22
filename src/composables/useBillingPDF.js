@@ -2,6 +2,7 @@ import { getAll } from '@/firebase/firestore'
 import { Collections } from '@/firebase/collections'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { getLogoDataUri } from '@/utils/pdfLogo'
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
@@ -94,13 +95,16 @@ async function loadConfig() {
     const configs = await getAll(Collections.CONFIGURATIONS)
     if (configs.length) {
       // Always use the most recently saved config doc to handle duplicate docs gracefully
-      cachedConfig = configs.sort((a, b) => tsMs(b.updatedAt) - tsMs(a.updatedAt))[0]
+      const latest = configs.sort((a, b) => tsMs(b.updatedAt) - tsMs(a.updatedAt))[0]
+      const logoFallback = latest.company?.logoUrl || await getLogoDataUri()
+      cachedConfig = { ...latest, company: { ...(latest.company || {}), logoUrl: logoFallback } }
       return cachedConfig
     }
   } catch (e) {
     console.error('[BillingPDF] Failed to load config:', e)
   }
-  return {}
+  const logoFallback = await getLogoDataUri()
+  return { company: { logoUrl: logoFallback } }
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -435,7 +439,9 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; }
   .doc-page { width: 210mm; min-height: 297mm; padding: 12mm 14mm; }
   .box { border: 1.5px solid #000; }
-  .co-name { font-size: 25px; font-weight: 800; color: #1d4ed8; padding: 8px 12px 2px; }
+  .co-hdr { display: flex; align-items: center; gap: 12px; padding: 8px 12px 2px; }
+  .co-hdr img { height: 40px; width: 40px; object-fit: contain; flex-shrink: 0; }
+  .co-name { font-size: 25px; font-weight: 800; color: #1d4ed8; }
   .co-addr { font-size: 10.5px; font-weight: 700; color: #c2410c; padding: 0 12px 6px; }
   .title-bar { text-align: center; font-weight: 700; font-size: 14px; padding: 5px; border-top: 1px solid #000; letter-spacing: .5px; }
   .info-grid { display: flex; border-top: 1px solid #000; }
@@ -455,7 +461,10 @@ function buildQuotationStyleHtml(row, templateKey, company) {
 <body>
 <div class="doc-page">
   <div class="box">
-    <div class="co-name">${company.name || ''}</div>
+    <div class="co-hdr">
+      ${company.logoUrl ? `<img src="${company.logoUrl}" alt="Logo">` : ''}
+      <div class="co-name">${company.name || ''}</div>
+    </div>
     <div class="co-addr">${addr}</div>
     <div class="title-bar">${docTitle}</div>
     <div class="info-grid">

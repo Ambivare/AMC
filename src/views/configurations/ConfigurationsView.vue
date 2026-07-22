@@ -414,21 +414,27 @@
       <FileCode :size="18" />
       <div>
         <div class="section-title">AMC Contract Format</div>
-        <div class="section-sub">Paste your HTML contract template here. The following placeholders will be replaced when generating a contract PDF.</div>
+        <div class="section-sub">Paste your HTML contract template here. The following placeholders will be replaced when generating a contract PDF. Leave blank to use the built-in default format.</div>
       </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;">
+      <button class="btn-secondary btn-sm" @click="loadDefaultContract">Load Default</button>
     </div>
     <div style="margin-bottom:14px;padding:12px 16px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.18);border-radius:10px;font-size:12px;color:var(--ct-muted);line-height:1.7;">
       <strong style="color:var(--ct-accent);">Available placeholders:</strong><br>
-      <code>{{LETTER_DATE}}</code> · <code>{{CLIENT_NAME}}</code> · <code>{{CLIENT_ADDRESS}}</code> · <code>{{CONTACT_PERSON}}</code> · <code>{{CONTACT_PHONE}}</code><br>
-      <code>{{LIFT_MAKE}}</code> · <code>{{LIFT_DOOR_TYPE}}</code> · <code>{{LIFT_TYPOLOGY}}</code> · <code>{{LIFT_LOAD}}</code> · <code>{{LIFT_HEIGHT}}</code> · <code>{{NUM_LIFTS}}</code><br>
-      <code>{{OFFER_NON_COMP}}</code> · <code>{{OFFER_DISCOUNT}}</code> · <code>{{OFFER_FINAL}}</code> · <code>{{PAYMENT_TERMS}}</code> · <code>{{DURATION}}</code><br>
-      For conditional discount row: wrap the discount &lt;tr&gt; with <code>&lt;!-- DISCOUNT_ROW_START --&gt;</code> and <code>&lt;!-- DISCOUNT_ROW_END --&gt;</code>
+      <code>&#123;&#123;company.logo&#125;&#125;</code> · <code>&#123;&#123;company.name&#125;&#125;</code> · <code>&#123;&#123;company.address&#125;&#125;</code> · <code>&#123;&#123;company.phone&#125;&#125;</code> · <code>&#123;&#123;company.email&#125;&#125;</code><br>
+      <code>&#123;&#123;LETTER_DATE&#125;&#125;</code> · <code>&#123;&#123;REF_NO&#125;&#125;</code> · <code>&#123;&#123;CLIENT_NAME&#125;&#125;</code> · <code>&#123;&#123;CLIENT_ADDRESS&#125;&#125;</code> · <code>&#123;&#123;CONTACT_PERSON&#125;&#125;</code> · <code>&#123;&#123;CONTACT_PHONE&#125;&#125;</code><br>
+      <code>&#123;&#123;LIFT_MAKE&#125;&#125;</code> · <code>&#123;&#123;LIFT_DOOR_TYPE&#125;&#125;</code> · <code>&#123;&#123;LIFT_TYPOLOGY&#125;&#125;</code> · <code>&#123;&#123;LIFT_LOAD&#125;&#125;</code> · <code>&#123;&#123;LIFT_HEIGHT&#125;&#125;</code> · <code>&#123;&#123;NUM_LIFTS&#125;&#125;</code> · <code>&#123;&#123;PASSENGER_TYPE&#125;&#125;</code><br>
+      <code>&#123;&#123;CONTRACT_TYPE&#125;&#125;</code> · <code>&#123;&#123;CONTRACT_PERIOD&#125;&#125;</code> · <code>&#123;&#123;CONTRACT_VALUE&#125;&#125;</code> · <code>&#123;&#123;GST_PERCENT&#125;&#125;</code> · <code>&#123;&#123;GST_AMOUNT&#125;&#125;</code> · <code>&#123;&#123;TOTAL_VALUE&#125;&#125;</code> · <code>&#123;&#123;AMOUNT_WORDS&#125;&#125;</code><br>
+      <code>&#123;&#123;OFFER_NON_COMP&#125;&#125;</code> · <code>&#123;&#123;OFFER_DISCOUNT&#125;&#125;</code> · <code>&#123;&#123;OFFER_FINAL&#125;&#125;</code> · <code>&#123;&#123;PAYMENT_TERMS&#125;&#125;</code> · <code>&#123;&#123;DURATION&#125;&#125;</code><br>
+      For conditional discount row: wrap the discount &lt;tr&gt; with <code>&lt;!-- DISCOUNT_ROW_START --&gt;</code> and <code>&lt;!-- DISCOUNT_ROW_END --&gt;</code><br>
+      For comprehensive/non-comprehensive text: wrap with <code>&lt;!-- COMP_START --&gt;</code>/<code>&lt;!-- COMP_END --&gt;</code> and <code>&lt;!-- NONCOMP_START --&gt;</code>/<code>&lt;!-- NONCOMP_END --&gt;</code>
     </div>
     <textarea
       v-model="config.contractHtml"
       class="input"
       style="width:100%;height:500px;font-family:monospace;font-size:12px;resize:vertical;"
-      placeholder="Paste your full HTML contract template here…"
+      placeholder="Paste your full HTML contract template here… or leave blank to use the built-in default."
     ></textarea>
   </div>
 
@@ -614,6 +620,7 @@ import { useActivityStore } from '@/stores/activity'
 import { useCompanyConfig } from '@/composables/useCompanyConfig'
 import { useEnabledTabs } from '@/composables/useEnabledTabs'
 import { clearBillingPDFCache } from '@/composables/useBillingPDF'
+import { defaultContractTemplate } from '@/utils/contractTemplate'
 
 const ui = useUIStore()
 const activity = useActivityStore()
@@ -980,6 +987,10 @@ function uploadLogo(event) {
   reader.readAsDataURL(file)
 }
 
+function loadDefaultContract() {
+  config.value.contractHtml = defaultContractTemplate()
+}
+
 function loadDefaultTemplate(key) {
   const defaults = {
     quotation: defaultQuotationTemplate(),
@@ -1220,7 +1231,9 @@ function defaultQuotationTemplate() {
   body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; }
   .doc-page { width: 210mm; min-height: 297mm; padding: 12mm 14mm; }
   .box { border: 1.5px solid #000; }
-  .co-name { font-size: 25px; font-weight: 800; color: #1d4ed8; padding: 8px 12px 2px; }
+  .co-hdr { display: flex; align-items: center; gap: 12px; padding: 8px 12px 2px; }
+  .co-hdr img { height: 40px; width: 40px; object-fit: contain; flex-shrink: 0; }
+  .co-name { font-size: 25px; font-weight: 800; color: #1d4ed8; }
   .co-addr { font-size: 10.5px; font-weight: 700; color: #c2410c; padding: 0 12px 6px; }
   .title-bar { text-align: center; font-weight: 700; font-size: 14px; padding: 5px; border-top: 1px solid #000; letter-spacing: .5px; }
   .info-grid { display: flex; border-top: 1px solid #000; }
@@ -1240,7 +1253,10 @@ function defaultQuotationTemplate() {
 <body>
 <div class="doc-page">
   <div class="box">
-    <div class="co-name">{{company.name}}</div>
+    <div class="co-hdr">
+      {{company.logo}}
+      <div class="co-name">{{company.name}}</div>
+    </div>
     <div class="co-addr">{{company.address}}</div>
     <div class="title-bar">QUOTATION</div>
     <div class="info-grid">
