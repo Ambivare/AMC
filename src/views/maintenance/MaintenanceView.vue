@@ -128,38 +128,15 @@
                 <div v-if="visit.completedAt" style="font-size:10px;color:var(--ct-accent);margin-top:2px;">
                   ✓ Completed by {{ visit.completedBy || (visit.technicianName || visit.technician || '—') }}
                 </div>
-                <!-- Inspection status -->
-                <div v-if="getVisitInspection(contract.id, visit.monthKey)" style="font-size:10px;color:var(--ct-green);margin-top:2px;">
-                  Inspected by {{ getVisitInspection(contract.id, visit.monthKey).checkedBy }}
-                </div>
-                <!-- Receipt / Inspect action buttons for completed visits -->
+                <!-- Receipt action buttons for completed visits -->
                 <div v-if="visit.status === 'completed' || visit.completedAt" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">
                   <button
-                    v-if="visit.receiptUrl"
                     class="btn-secondary btn-sm"
                     style="font-size:10px;"
-                    @click.stop="triggerMaintDownload(visit.receiptUrl, 'AMC-Receipt-' + (visit.contractNumber || visit.clientName) + '-' + visit.monthKey + '.pdf')"
-                    title="Download Receipt"
+                    @click.stop="regenerateAndDownloadMaintReceipt(visit)"
+                    title="Download Service Report"
                   >
-                    <FileDown :size="10" /> Receipt
-                  </button>
-                  <button
-                    v-if="!getVisitInspection(contract.id, visit.monthKey)"
-                    class="btn-secondary btn-sm"
-                    style="font-size:10px;"
-                    @click.stop="openMaintInspection(contract, visit.monthKey)"
-                    title="Log Inspection"
-                  >
-                    <ClipboardCheck :size="10" /> Inspect
-                  </button>
-                  <button
-                    v-else
-                    class="btn-secondary btn-sm"
-                    style="font-size:10px;"
-                    @click.stop="openViewMaintInspection(getVisitInspection(contract.id, visit.monthKey))"
-                    title="View Inspection"
-                  >
-                    <Eye :size="10" /> Inspection
+                    <FileDown :size="10" /> Service Report
                   </button>
                   <button
                     class="btn-secondary btn-sm"
@@ -602,10 +579,33 @@
           </div>
         </template>
 
+        <!-- Service checklist -->
+        <div class="form-group form-full" style="border-top:1px solid rgba(255,255,255,0.07);padding-top:16px;margin-top:4px;">
+          <div style="font-size:12px;font-weight:600;color:var(--ct-accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">
+            Service Checklist
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
+            <div v-for="(item, i) in SERVICE_CHECKLIST_LEFT" :key="'l'+i" style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ct-sub);border-bottom:1px solid rgba(255,255,255,0.04);">
+              <input type="checkbox" v-model="monthCompletionForm.checklist['l'+i]" style="width:15px;height:15px;flex-shrink:0;" />
+              <span>{{ item }}</span>
+            </div>
+            <div v-for="(item, i) in SERVICE_CHECKLIST_RIGHT" :key="'r'+i" style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ct-sub);border-bottom:1px solid rgba(255,255,255,0.04);">
+              <input type="checkbox" v-model="monthCompletionForm.checklist['r'+i]" style="width:15px;height:15px;flex-shrink:0;" />
+              <span>{{ item }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Remarks -->
         <div class="form-group form-full">
           <label class="label">Remarks / Work Done</label>
           <textarea v-model="monthCompletionForm.remarks" class="input" rows="3" placeholder="Work done, observations, parts replaced…"></textarea>
+        </div>
+
+        <!-- Technician signature -->
+        <div class="form-group form-full">
+          <label class="label">Technician Signature</label>
+          <SignatureCanvas v-model="monthCompletionForm.technicianSignature" />
         </div>
 
         <!-- Signatory details -->
@@ -904,6 +904,7 @@ import { useExport } from '@/composables/useExport'
 import { triggerDownload, convertHtmlToPdf } from '@/composables/usePdfApiService'
 import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
 import { notifyWorker } from '@/utils/notifyWorker'
+import { SERVICE_CHECKLIST_LEFT, SERVICE_CHECKLIST_RIGHT, defaultServiceChecklist, generateServiceReportPdf } from '@/utils/serviceReport'
 
 const ui = useUIStore()
 const activity = useActivityStore()
@@ -913,8 +914,6 @@ const { showExportDialog, dialogVisible: expDlgVisible, selectedPeriod: expPerio
 const isTech       = computed(() => auth.role === 'technician')
 const isAdmin      = computed(() => auth.role === 'admin')
 const isReception  = computed(() => auth.role === 'reception')
-
-function triggerMaintDownload(url, filename) { triggerDownload(url, filename) }
 
 function getProjectName(projectId) {
   if (!projectId) return null
@@ -1167,6 +1166,8 @@ const monthCompletionEmptyForm = () => ({
   signatoryDesignation: '',
   signature: '',
   signatureImage: '',
+  checklist: defaultServiceChecklist(),
+  technicianSignature: '',
 })
 const monthCompletionForm = ref(monthCompletionEmptyForm())
 
@@ -1391,6 +1392,8 @@ async function saveMonthCompletion() {
       signatoryDesignation: form.signatoryDesignation,
       signature: form.signature,
       signatureImage: form.signatureImage || '',
+      checklist: form.checklist,
+      technicianSignature: form.technicianSignature || '',
       loggedAt: completedAt,
       completedAt,
       completedBy: auth.user?.fullName || auth.user?.username || '',
@@ -1399,15 +1402,14 @@ async function saveMonthCompletion() {
       status: 'completed',
       completedDate: visitDate,
     }
-    const newLogId = await addAmcVisit(logData)
-    notifyWorker('amc_monthly_completed', { ...logData, id: newLogId, status: 'completed' }, { status: 'pending' })
+    await addAmcVisit(logData)
+    notifyWorker('amc_monthly_completed', { ...logData, status: 'completed' }, { status: 'pending' })
     ui.success('Month marked as completed.')
     try {
-      const receiptUrl = await generateAmcReceipt(logData)
-      if (receiptUrl && newLogId) await editAmcVisit(newLogId, { receiptUrl })
+      await generateAmcReceipt(logData)
     } catch (e) {
       console.error('[AMC] Receipt generation failed:', e)
-      ui.warning('Month saved but receipt PDF could not be generated.')
+      ui.warning('Month saved but the service report PDF could not be generated.')
     }
     showMonthCompletionModal.value = false
   } catch (e) {
@@ -1417,74 +1419,32 @@ async function saveMonthCompletion() {
   }
 }
 
-function _buildMaintReceiptHtml(log, company) {
-  const headerUrl = company?.headerUrl || company?.logoUrl || ''
-  const footerUrl = company?.footerUrl || ''
-  const companyName = company?.name || 'TAB Elevators'
-  const dateStr = log.date
-    ? new Date(log.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
-    : '—'
-  const completedTs = log.completedAt?.toDate?.() || (log.completedAt ? new Date(log.completedAt) : null)
-  const completedStr = completedTs ? completedTs.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : ''
-  const sigSrc = log.signatureImage?.startsWith('data:image') ? log.signatureImage
-               : log.signature?.startsWith('data:image') ? log.signature : null
-  const building = [log.buildingName, log.wingName, log.liftNo ? 'Lift ' + log.liftNo : ''].filter(Boolean).join(' · ')
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:Arial,sans-serif;font-size:12px;color:#1e293b;}
-    .page{width:210mm;min-height:297mm;background:#fff;}
-    .header-img,.footer-img{width:100%;display:block;}
-    .footer-img{position:fixed;bottom:0;left:0;}
-    .content{padding:16mm 20mm 24mm;}
-    h1{font-size:16px;font-weight:700;color:#1e3a5f;margin-bottom:4px;}
-    .sub{font-size:11px;color:#64748b;margin-bottom:18px;}
-    .sec{font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.05em;
-         border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin:16px 0 8px;}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-    .item label{font-size:10px;color:#64748b;display:block;}
-    .item span{font-size:12px;font-weight:600;color:#1e293b;}
-    .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;color:#374151;}
-    .sig-box{border:1px solid #e2e8f0;border-radius:6px;padding:12px;min-height:100px;}
-    .sig-box img{max-height:80px;}
-    .sig-name{font-weight:700;font-size:12px;margin-top:8px;border-top:1px solid #cbd5e1;padding-top:6px;}
-    .sig-desg{font-size:10px;color:#64748b;}
-  </style></head><body><div class="page">
-  ${headerUrl ? `<img class="header-img" src="${headerUrl}"/>` : `<div style="background:#1e3a5f;padding:14px 20mm;color:#fff;font-size:14px;font-weight:700;">${companyName}</div>`}
-  <div class="content">
-    <h1>AMC Maintenance Service Report</h1>
-    <div class="sub">Contract: ${log.contractNumber || '—'} &nbsp;|&nbsp; Month: ${log.monthKey || '—'} &nbsp;|&nbsp; Date: ${dateStr}</div>
-    <div class="sec">Visit Details</div>
-    <div class="grid">
-      <div class="item"><label>Client Name</label><span>${log.clientName || '—'}</span></div>
-      <div class="item"><label>Contract No.</label><span>${log.contractNumber || '—'}</span></div>
-      <div class="item"><label>Visit Date</label><span>${dateStr}</span></div>
-      <div class="item"><label>Month</label><span>${log.monthKey || '—'}</span></div>
-      <div class="item"><label>Technician</label><span>${log.technician || log.technicianName || '—'}</span></div>
-      <div class="item"><label>Address</label><span>${log.clientAddress || '—'}</span></div>
-      ${building ? `<div class="item"><label>Building / Wing</label><span>${building}</span></div>` : ''}
-      ${completedStr ? `<div class="item"><label>Completed At</label><span>${completedStr}</span></div>` : ''}
-      <div class="item"><label>Completed By</label><span>${log.completedBy || '—'}</span></div>
-    </div>
-    <div class="sec">Work Done / Remarks</div>
-    <div class="box">${log.remarks || 'Routine maintenance completed as per schedule.'}</div>
-    <div class="sec">Customer Acknowledgement</div>
-    <div class="sig-box">
-      ${sigSrc ? `<img src="${sigSrc}"/>` : '<div style="color:#94a3b8;font-size:11px;padding:12px 0;">[ Signature not provided ]</div>'}
-      <div class="sig-name">${log.signatoryName || '—'}</div>
-      <div class="sig-desg">${log.signatoryDesignation || '—'}</div>
-    </div>
-  </div>
-  ${footerUrl ? `<img class="footer-img" src="${footerUrl}"/>` : ''}
-  </div></body></html>`
-}
-
+// Generates and downloads the "Service Report" PDF (checklist + signatures).
+// jsPDF-based (landscape, matches printed stationery) — downloads instantly,
+// no external API round-trip or hosted URL needed.
 async function generateAmcReceipt(log) {
   const ctx = await _getCtx()
-  const html = _buildMaintReceiptHtml(log, ctx?.company)
-  const filename = `AMC-Receipt-${log.contractNumber || log.clientName}-${log.monthKey}.pdf`
-  const url = await convertHtmlToPdf(html, filename, log.contractNumber || 'receipt')
-  triggerDownload(url, filename)
-  return url
+  const sigSrc = log.signatureImage?.startsWith('data:image') ? log.signatureImage
+               : log.signature?.startsWith('data:image') ? log.signature : ''
+  await generateServiceReportPdf({
+    company: ctx?.company || {},
+    siteName: log.clientName || '',
+    reportNo: (log.contractNumber || '') + (log.monthKey ? '/' + log.monthKey : ''),
+    date: log.date,
+    checklist: log.checklist || defaultServiceChecklist(),
+    remarks: log.remarks,
+    technicianName: log.technician || log.technicianName || '',
+    technicianSignature: log.technicianSignature || '',
+    customerName: log.signatoryName || '',
+    customerSignature: sigSrc,
+  }, ui)
+  return true
+}
+
+async function regenerateAndDownloadMaintReceipt(visit) {
+  try {
+    await generateAmcReceipt(visit)
+  } catch { ui.error('Could not generate receipt.') }
 }
 
 async function shareVisitOnWhatsApp(visit, phone) {
@@ -1494,11 +1454,7 @@ async function shareVisitOnWhatsApp(visit, phone) {
     return
   }
   try {
-    if (visit.receiptUrl) {
-      triggerMaintDownload(visit.receiptUrl, 'AMC-Receipt-' + (visit.contractNumber || visit.clientName) + '-' + visit.monthKey + '.pdf')
-    } else {
-      await generateAmcReceipt(visit)
-    }
+    await generateAmcReceipt(visit)
   } catch { ui.error('Could not generate receipt.') }
   window.open(chatUrl, '_blank')
   ui.info('WhatsApp opened — attach the downloaded receipt in the chat.')

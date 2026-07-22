@@ -265,14 +265,8 @@
                   </div>
                   <div v-if="lg.remarks" style="font-size:11px;color:var(--ct-muted);margin-top:5px;font-style:italic;">{{ lg.remarks }}</div>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                    <button
-                      v-if="lg.receiptUrl"
-                      class="btn-secondary btn-sm"
-                      @click.stop="triggerDownload(lg.receiptUrl, 'AMC-Receipt-' + (selectedContract?.clientName || '') + '-' + month.key + '.pdf')"
-                      title="Download Receipt"
-                    ><Download :size="11" /> Receipt</button>
-                    <button v-else class="btn-secondary btn-sm" @click.stop="regenerateAndDownloadReceipt(lg)" title="Generate Receipt">
-                      <Download :size="11" /> Receipt
+                    <button class="btn-secondary btn-sm" @click.stop="regenerateAndDownloadReceipt(lg)" title="Download Service Report">
+                      <Download :size="11" /> Service Report
                     </button>
                     <button
                       class="btn-secondary btn-sm"
@@ -282,23 +276,7 @@
                     ><MessageCircle :size="11" /> WhatsApp</button>
                   </div>
                 </div>
-                <!-- Inspection status -->
-                <div v-if="getMonthInspection(selectedContractId, month.key)" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
-                  <div style="font-size:11px;color:var(--ct-green);margin-bottom:6px;">Inspected by {{ getMonthInspection(selectedContractId, month.key).checkedBy }}</div>
-                  <div style="display:flex;gap:6px;">
-                    <button class="btn-secondary btn-sm" @click.stop="viewInspection(getMonthInspection(selectedContractId, month.key))" title="View Inspection"><Eye :size="11" /> View</button>
-                    <button
-                      v-if="getMonthInspection(selectedContractId, month.key)?.receiptUrl"
-                      class="btn-secondary btn-sm"
-                      @click.stop="triggerDownload(getMonthInspection(selectedContractId, month.key).receiptUrl, 'Inspection-' + month.key + '.pdf')"
-                    ><Download :size="11" /> PDF</button>
-                    <button v-else class="btn-secondary btn-sm" @click.stop="generateInspectionPdf(getMonthInspection(selectedContractId, month.key))"><Download :size="11" /> PDF</button>
-                  </div>
-                </div>
-                <div v-else style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
-                  <button class="btn-secondary btn-sm" @click.stop="openInspectionModal(selectedContract, month.key, month.label)" title="Log Inspection">
-                    <ClipboardCheck :size="11" /> Inspect
-                  </button>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
                   <button class="btn-secondary btn-sm" style="color:var(--ct-accent);" @click.stop="openLogMaintenance(month.key)" title="Log Another Visit">
                     <Plus :size="11" /> Log Another
                   </button>
@@ -309,9 +287,6 @@
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                   <button class="btn-secondary btn-sm" @click.stop="openLogMaintenance(month.key)" title="Log Maintenance Visit">
                     <Plus :size="11" /> Log Visit
-                  </button>
-                  <button class="btn-secondary btn-sm" @click.stop="openInspectionModal(selectedContract, month.key, month.label)" title="Log Inspection">
-                    <ClipboardCheck :size="11" /> Inspect
                   </button>
                 </div>
               </div>
@@ -450,6 +425,9 @@
           <div v-if="inst.isPaid">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--ct-muted);padding:8px 10px;background:rgba(74,222,128,0.04);border-radius:8px;border:1px solid rgba(74,222,128,0.12);">
               <span>✓ {{ formatCurrency(inst.paidAmount) }} via {{ inst.paidMethod || '—' }}<span v-if="inst.paidReference"> · Ref: {{ inst.paidReference }}</span></span>
+              <button class="btn-secondary btn-sm" style="padding:3px 7px;flex-shrink:0;" title="Download Receipt" @click.stop="downloadPaymentReceipt(getContractById(inst.contractId), { amount: inst.paidAmount, date: inst.paidDate, method: inst.paidMethod, reference: inst.paidReference }, inst.paidHistoryIdx)">
+                <Download :size="11" />
+              </button>
               <button v-if="isAdmin || isReception" class="btn-secondary btn-sm" style="padding:3px 7px;flex-shrink:0;" title="Edit payment" @click.stop="editingInstPay?.contractId === inst.contractId && editingInstPay?.origIdx === inst.paidHistoryIdx ? editingInstPay = null : openInstPayEdit(inst)">
                 <Pencil :size="11" />
               </button>
@@ -592,9 +570,11 @@
           </div>
 
           <!-- Received detail -->
-          <div v-if="item.isPaid" style="font-size:11px;color:var(--ct-muted);padding:8px 10px;background:rgba(74,222,128,0.04);border-radius:8px;border:1px solid rgba(74,222,128,0.12);">
-            ✓ {{ formatCurrency(item.paidAmount) }} via {{ item.paidMethod || '—' }}
-            <span v-if="item.paidReference"> · Ref: {{ item.paidReference }}</span>
+          <div v-if="item.isPaid" style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--ct-muted);padding:8px 10px;background:rgba(74,222,128,0.04);border-radius:8px;border:1px solid rgba(74,222,128,0.12);">
+            <span>✓ {{ formatCurrency(item.paidAmount ?? item.amount) }} via {{ item.paidMethod || '—' }}<span v-if="item.paidReference"> · Ref: {{ item.paidReference }}</span></span>
+            <button class="btn-secondary btn-sm" style="padding:3px 7px;flex-shrink:0;" title="Download Receipt" @click.stop="downloadPaymentReceipt(getContractById(item.contractId), { amount: item.paidAmount ?? item.amount, date: item.paidDate, method: item.paidMethod, reference: item.paidReference }, Math.max(0, item.paidHistoryIdx))">
+              <Download :size="11" />
+            </button>
           </div>
           <div v-else-if="item.isOverdue" style="font-size:11px;color:#f87171;padding:8px 10px;background:rgba(248,113,113,0.04);border-radius:8px;border:1px solid rgba(248,113,113,0.12);">
             ⚠ Overdue since {{ item.dueDate }}
@@ -853,9 +833,32 @@
             <input v-model="logForm.liftNo" class="input" placeholder="e.g. L-01, Lift 1" />
           </div>
         </template>
+        <!-- Service checklist -->
+        <div class="form-group form-full" style="border-top:1px solid rgba(255,255,255,0.07);padding-top:16px;margin-top:4px;">
+          <div style="font-size:12px;font-weight:600;color:var(--ct-accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">
+            Service Checklist
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
+            <div v-for="(item, i) in SERVICE_CHECKLIST_LEFT" :key="'l'+i" style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ct-sub);border-bottom:1px solid rgba(255,255,255,0.04);">
+              <input type="checkbox" v-model="logForm.checklist['l'+i]" style="width:15px;height:15px;flex-shrink:0;" />
+              <span>{{ item }}</span>
+            </div>
+            <div v-for="(item, i) in SERVICE_CHECKLIST_RIGHT" :key="'r'+i" style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ct-sub);border-bottom:1px solid rgba(255,255,255,0.04);">
+              <input type="checkbox" v-model="logForm.checklist['r'+i]" style="width:15px;height:15px;flex-shrink:0;" />
+              <span>{{ item }}</span>
+            </div>
+          </div>
+        </div>
+
         <div class="form-group form-full">
           <label class="label">Remarks / Work Done</label>
           <textarea v-model="logForm.remarks" class="input" rows="3" placeholder="Work done, observations, parts replaced…"></textarea>
+        </div>
+
+        <!-- Technician signature -->
+        <div class="form-group form-full">
+          <label class="label">Technician Signature</label>
+          <SignatureCanvas v-model="logForm.technicianSignature" />
         </div>
 
         <!-- Signatory details -->
@@ -1223,6 +1226,9 @@
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
                   <span style="color:#10b981;font-weight:600;font-size:13px;">Rs. {{ Number(ph.amount).toLocaleString('en-IN') }}</span>
+                  <button class="btn-secondary btn-sm" @click="downloadPaymentReceipt(payTarget, ph, i)" style="padding:3px 7px;" title="Download Receipt">
+                    <Download :size="11" />
+                  </button>
                   <button v-if="isAdmin || isReception" class="btn-secondary btn-sm" @click="startEditPay(i)" style="padding:3px 7px;" title="Edit payment">
                     <Pencil :size="11" />
                   </button>
@@ -1654,6 +1660,8 @@ import { useExport } from '@/composables/useExport'
 import { convertHtmlToPdf, triggerDownload } from '@/composables/usePdfApiService'
 import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
 import { notifyWorker } from '@/utils/notifyWorker'
+import { SERVICE_CHECKLIST_LEFT, SERVICE_CHECKLIST_RIGHT, defaultServiceChecklist, generateServiceReportPdf } from '@/utils/serviceReport'
+import { generatePaymentReceiptPdf } from '@/utils/paymentReceipt'
 
 const ui = useUIStore()
 const authStore = useAuthStore()
@@ -1833,8 +1841,7 @@ async function generateInspectionPdf(inspection) {
 async function regenerateAndDownloadReceipt(log) {
   if (!log) return
   try {
-    const url = await generateMaintenanceReceipt(log)
-    if (url && log.id) await editLog(log.id, { receiptUrl: url })
+    await generateMaintenanceReceipt(log)
   } catch { ui.error('Could not generate receipt.') }
 }
 
@@ -1846,14 +1853,7 @@ async function shareLogOnWhatsApp(log, monthKey) {
     return
   }
   try {
-    let url = log.receiptUrl
-    if (!url) {
-      url = await generateMaintenanceReceipt(log)
-      if (url && log.id) await editLog(log.id, { receiptUrl: url })
-    }
-    if (url) {
-      triggerDownload(url, 'AMC-Receipt-' + (selectedContract.value?.clientName || '') + '-' + monthKey + '.pdf')
-    }
+    await generateMaintenanceReceipt(log)
   } catch { ui.error('Could not generate receipt.') }
   window.open(chatUrl, '_blank')
   ui.info('WhatsApp opened — attach the downloaded receipt in the chat.')
@@ -2410,6 +2410,10 @@ function getProjectName(projectId) {
   return allProjects.value.find(p => p.id === projectId)?.projectName || null
 }
 
+function getContractById(contractId) {
+  return contracts.value.find(c => c.id === contractId) || null
+}
+
 // ── Delete Monthly Visit Log (admin only) ─────────────────────────────
 const confirmLogRef = ref(null)
 const logDeleteTarget = ref(null)
@@ -2624,7 +2628,7 @@ const maintenanceMonths = computed(() => {
 
 const showLogModal = ref(false)
 const editingLog = ref(null)
-const defaultLogForm = () => ({ month: new Date().getMonth() + 1, year: currentYear, date: new Date().toISOString().split('T')[0], technician: '', remarks: '', signatoryName: '', signatoryDesignation: '', signature: '', signatureImage: '', buildingName: '', wingName: '', liftNo: '' })
+const defaultLogForm = () => ({ month: new Date().getMonth() + 1, year: currentYear, date: new Date().toISOString().split('T')[0], technician: '', remarks: '', signatoryName: '', signatoryDesignation: '', signature: '', signatureImage: '', buildingName: '', wingName: '', liftNo: '', checklist: defaultServiceChecklist(), technicianSignature: '' })
 const logForm = ref(defaultLogForm())
 
 // Lift selection for the Log Maintenance modal (keeps names/ids in sync)
@@ -2707,6 +2711,8 @@ function openEditLog(log) {
     buildingName: log.buildingName || '',
     wingName: log.wingName || '',
     liftNo: log.liftNo || '',
+    checklist: log.checklist || defaultServiceChecklist(),
+    technicianSignature: log.technicianSignature || '',
   }
   showLogModal.value = true
   // attempt to map existing building/wing/lift from the log back into the selector
@@ -2749,6 +2755,8 @@ async function saveLog() {
       signatoryDesignation: logForm.value.signatoryDesignation,
       signature: logForm.value.signature,
       signatureImage: logForm.value.signatureImage || '',
+      checklist: logForm.value.checklist,
+      technicianSignature: logForm.value.technicianSignature || '',
       loggedAt: completedAt,
       completedAt,
       completedBy: authStore.user?.fullName || authStore.user?.username || '',
@@ -2767,15 +2775,12 @@ async function saveLog() {
     notifyWorker('amc_monthly_log_created', { ...logData, id: newLogId })
     ui.success('Maintenance visit logged.')
     showLogModal.value = false
-    // Auto-generate receipt and save URL back to log record
+    // Auto-generate and download the Service Report
     try {
-      const receiptUrl = await generateMaintenanceReceipt(logData)
-      if (receiptUrl && newLogId) {
-        await editLog(newLogId, { receiptUrl })
-      }
+      await generateMaintenanceReceipt(logData)
     } catch (e) {
       console.error('[AMC] Receipt generation failed:', e)
-      ui.warning('Visit saved but receipt PDF could not be generated.')
+      ui.warning('Visit saved but the service report PDF could not be generated.')
     }
   } catch (e) {
     ui.error(editingLog.value ? 'Failed to update log.' : 'Failed to log maintenance.')
@@ -2784,77 +2789,29 @@ async function saveLog() {
   }
 }
 
-function _buildReceiptHtml(log, company) {
-  const headerUrl = company?.headerUrl || company?.logoUrl || ''
-  const footerUrl = company?.footerUrl || ''
-  const companyName = company?.name || 'TAB Elevators'
-  const dateStr = log.date
-    ? new Date(log.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
-    : '—'
-  const completedTs = log.completedAt?.toDate?.() || (log.completedAt ? new Date(log.completedAt) : null)
-  const completedStr = completedTs ? completedTs.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : ''
-  const sigSrc = log.signatureImage?.startsWith('data:image') ? log.signatureImage
-               : log.signature?.startsWith('data:image') ? log.signature : null
-  const building = [log.buildingName, log.wingName, log.liftNo ? 'Lift ' + log.liftNo : ''].filter(Boolean).join(' · ')
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:Arial,sans-serif;font-size:12px;color:#1e293b;}
-    .page{width:210mm;min-height:297mm;background:#fff;}
-    .header-img,.footer-img{width:100%;display:block;}
-    .footer-img{position:fixed;bottom:0;left:0;}
-    .content{padding:16mm 20mm 24mm;}
-    h1{font-size:16px;font-weight:700;color:#1e3a5f;margin-bottom:4px;}
-    .sub{font-size:11px;color:#64748b;margin-bottom:18px;}
-    .sec{font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.05em;
-         border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin:16px 0 8px;}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-    .item label{font-size:10px;color:#64748b;display:block;}
-    .item span{font-size:12px;font-weight:600;color:#1e293b;}
-    .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;color:#374151;}
-    .sig-box{border:1px solid #e2e8f0;border-radius:6px;padding:12px;min-height:100px;}
-    .sig-box img{max-height:80px;}
-    .sig-name{font-weight:700;font-size:12px;margin-top:8px;border-top:1px solid #cbd5e1;padding-top:6px;}
-    .sig-desg{font-size:10px;color:#64748b;}
-  </style></head><body><div class="page">
-  ${headerUrl ? `<img class="header-img" src="${headerUrl}"/>` : `<div style="background:#1e3a5f;padding:14px 20mm;color:#fff;font-size:14px;font-weight:700;">${companyName}</div>`}
-  <div class="content">
-    <h1>AMC Maintenance Service Report</h1>
-    <div class="sub">Contract: ${log.contractNumber || '—'} &nbsp;|&nbsp; Month: ${log.monthKey || '—'} &nbsp;|&nbsp; Date: ${dateStr}</div>
-    <div class="sec">Visit Details</div>
-    <div class="grid">
-      <div class="item"><label>Client Name</label><span>${log.clientName || '—'}</span></div>
-      <div class="item"><label>Contract No.</label><span>${log.contractNumber || '—'}</span></div>
-      <div class="item"><label>Visit Date</label><span>${dateStr}</span></div>
-      <div class="item"><label>Month</label><span>${log.monthKey || '—'}</span></div>
-      <div class="item"><label>Technician</label><span>${log.technician || log.technicianName || '—'}</span></div>
-      <div class="item"><label>Address</label><span>${log.clientAddress || '—'}</span></div>
-      ${building ? `<div class="item"><label>Building / Wing</label><span>${building}</span></div>` : ''}
-      ${completedStr ? `<div class="item"><label>Completed At</label><span>${completedStr}</span></div>` : ''}
-      <div class="item"><label>Completed By</label><span>${log.completedBy || '—'}</span></div>
-    </div>
-    <div class="sec">Work Done / Remarks</div>
-    <div class="box">${log.remarks || 'Routine maintenance completed as per schedule.'}</div>
-    <div class="sec">Customer Acknowledgement</div>
-    <div class="sig-box">
-      ${sigSrc ? `<img src="${sigSrc}"/>` : '<div style="color:#94a3b8;font-size:11px;padding:12px 0;">[ Signature not provided ]</div>'}
-      <div class="sig-name">${log.signatoryName || '—'}</div>
-      <div class="sig-desg">${log.signatoryDesignation || '—'}</div>
-    </div>
-  </div>
-  ${footerUrl ? `<img class="footer-img" src="${footerUrl}"/>` : ''}
-  </div></body></html>`
-}
-
+// Generates and downloads the "Service Report" PDF (checklist + signatures)
+// for a monthly visit log. jsPDF-based (landscape, matches printed stationery)
+// so it downloads instantly with no external API round-trip.
 async function generateMaintenanceReceipt(log) {
   try {
     const ctx = await _getCtx()
-    const html = _buildReceiptHtml(log, ctx?.company)
-    const filename = `AMC-Receipt-${log.contractNumber || log.clientName}-${log.monthKey}.pdf`
-    const url = await convertHtmlToPdf(html, filename, log.contractNumber || 'receipt')
-    triggerDownload(url, filename)
-    return url
+    const sigSrc = log.signatureImage?.startsWith('data:image') ? log.signatureImage
+                 : log.signature?.startsWith('data:image') ? log.signature : ''
+    await generateServiceReportPdf({
+      company: ctx?.company || {},
+      siteName: log.clientName || '',
+      reportNo: (log.contractNumber || '') + (log.monthKey ? '/' + log.monthKey : ''),
+      date: log.date,
+      checklist: log.checklist || defaultServiceChecklist(),
+      remarks: log.remarks,
+      technicianName: log.technician || log.technicianName || '',
+      technicianSignature: log.technicianSignature || '',
+      customerName: log.signatoryName || '',
+      customerSignature: sigSrc,
+    }, ui)
+    return true
   } catch (e) {
-    console.error('[AMC] Receipt generation failed:', e)
+    console.error('[AMC] Service report generation failed:', e)
     return null
   }
 }
@@ -3408,6 +3365,30 @@ async function savePayment() {
     payModal.value = false
   } catch { ui.error('Failed to log payment') }
   finally { amcSaving.value = false }
+}
+
+// Downloads the "Authorised Receipt" for a single payment history entry.
+// Regenerated on demand from the stored entry data (no hosted URL needed).
+async function downloadPaymentReceipt(contract, entry, historyIdx) {
+  if (!contract || !entry) return
+  try {
+    const ctx = await _getCtx()
+    await generatePaymentReceiptPdf({
+      company: ctx?.company || {},
+      receiptNo: String((historyIdx ?? 0) + 1).padStart(3, '0'),
+      date: entry.date,
+      receivedFrom: contract.clientName || '',
+      amount: entry.amount,
+      method: entry.method,
+      reference: entry.reference,
+      billNo: contract.contractNumber || '',
+      forText: 'AMC Servicing',
+      repairAmcText: contract.contractNumber || 'AMC',
+    }, ui)
+  } catch (e) {
+    console.error('[AMC] Payment receipt generation failed:', e)
+    ui.error('Could not generate payment receipt.')
+  }
 }
 
 // ── Bulk Export ───────────────────────────────────────────────────────────────

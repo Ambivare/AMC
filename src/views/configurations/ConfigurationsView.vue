@@ -999,8 +999,9 @@ function previewTemplate(key) {
   const addr = [co.address, co.city, co.state, co.pincode].filter(Boolean).join(', ') || '123, Industrial Area, Navi Mumbai - 400001'
   const sampleItems = {
     taxInvoice: `<tr class="data-row"><td style="text-align:center;">1</td><td>Elevator Installation - 6 Floors</td><td style="text-align:center;">84861010</td><td style="text-align:center;">1</td><td style="text-align:right;">Rs. 84,746</td><td style="text-align:right;">Rs. 84,746</td></tr>`,
-    proforma:   `<tr><td style="text-align:center;padding:5px;border-bottom:1px solid #000;">1</td><td style="padding:5px;border-bottom:1px solid #000;">Elevator Installation - 6 Floors</td><td style="text-align:center;padding:5px;border-bottom:1px solid #000;">1</td><td style="text-align:right;padding:5px;border-bottom:1px solid #000;">Rs. 84,746</td><td style="text-align:right;padding:5px;border-bottom:1px solid #000;">Rs. 84,746</td></tr>`,
-    default:    `<tr><td>1</td><td>Elevator Installation - 6 Floors</td><td style="text-align:center;">1</td><td>nos</td><td style="text-align:right;">Rs. 84,746</td><td style="text-align:right;">Rs. 84,746</td></tr><tr><td>2</td><td>Control Panel &amp; Wiring</td><td style="text-align:center;">1</td><td>set</td><td style="text-align:right;">Rs. 4,000</td><td style="text-align:right;">Rs. 4,000</td></tr>`,
+    invoice:    `<tr><td style="text-align:center;padding:5px;border-bottom:1px solid #000;">1</td><td style="padding:5px;border-bottom:1px solid #000;">Elevator Installation - 6 Floors</td><td style="text-align:center;padding:5px;border-bottom:1px solid #000;">1</td><td style="text-align:right;padding:5px;border-bottom:1px solid #000;">Rs. 84,746</td><td style="text-align:right;padding:5px;border-bottom:1px solid #000;">Rs. 84,746</td></tr>`,
+    // quotation & proforma: Sr.No | Description | Unit Price | Qty | Unit | Total Price
+    default:    `<tr><td style="text-align:center;border:1px solid #000;">1</td><td style="border:1px solid #000;">Elevator Installation - 6 Floors</td><td style="text-align:right;border:1px solid #000;">Rs. 84,746</td><td style="text-align:center;border:1px solid #000;">1</td><td style="border:1px solid #000;">nos</td><td style="text-align:right;border:1px solid #000;">Rs. 84,746</td></tr><tr><td style="text-align:center;border:1px solid #000;">2</td><td style="border:1px solid #000;">Control Panel &amp; Wiring</td><td style="text-align:right;border:1px solid #000;">Rs. 4,000</td><td style="text-align:center;border:1px solid #000;">1</td><td style="border:1px solid #000;">set</td><td style="text-align:right;border:1px solid #000;">Rs. 4,000</td></tr>`,
   }
   const itemsHtml = sampleItems[key] || sampleItems.default
   const sample = html
@@ -1034,6 +1035,7 @@ function previewTemplate(key) {
     .replace(/\{\{document\.refDate\}\}/g, new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }))
     // Client
     .replace(/\{\{client\.name\}\}/g, 'Sample Client Pvt. Ltd.')
+    .replace(/\{\{client\.societyName\}\}/g, 'Sample Housing Society')
     .replace(/\{\{client\.address\}\}/g, 'B-12, Commercial Complex, Sector 17, Navi Mumbai - 400706')
     .replace(/\{\{client\.gst\}\}/g, '27XYZDE1234F1Z5')
     .replace(/\{\{client\.state\}\}/g, 'Maharashtra')
@@ -1045,6 +1047,8 @@ function previewTemplate(key) {
     .replace(/\{\{client\.phone2\}\}/g, '+91 87654 32109')
     // Project
     .replace(/\{\{project\.name\}\}/g, 'Elevator Project - Block A')
+    .replace(/\{\{liftDescription\}\}/g, '8-Passenger MRL Elevator')
+    .replace(/\{\{numberOfLifts\}\}/g, '1')
     // Items
     .replace(/\{\{items\}\}/g, itemsHtml)
     // Amounts
@@ -1055,7 +1059,10 @@ function previewTemplate(key) {
     .replace(/\{\{gstHalf\}\}/g, '9')
     .replace(/\{\{gstAmount\}\}/g, 'Rs. 15,254')
     .replace(/\{\{total\}\}/g, 'Rs. 1,00,000')
+    .replace(/\{\{perLiftTotal\}\}/g, 'Rs. 1,00,000')
+    .replace(/\{\{grandTotal\}\}/g, 'Rs. 1,00,000')
     .replace(/\{\{amountInWords\}\}/g, 'Rupees One Lakh Only')
+    .replace(/\{\{grandTotalInWords\}\}/g, 'RUPEES ONE LAKH ONLY')
     .replace(/\{\{notes\}\}/g, 'Payment due within 30 days.')
     .replace(/\{\{terms\}\}/g, 'Payment within 30 days of invoice date.')
     .replace(/\{\{prepared_by\}\}/g, '')
@@ -1067,7 +1074,7 @@ function previewTemplate(key) {
   })
 }
 
-function defaultQuotationTemplate() {
+function legacyBillingTemplate() {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -1201,27 +1208,102 @@ function defaultQuotationTemplate() {
 </html>`
 }
 
+// Quotation & Proforma — bordered A4 "bill invoice" letterhead format (matches printed stationery)
+function defaultQuotationTemplate() {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; }
+  .doc-page { width: 210mm; min-height: 297mm; padding: 12mm 14mm; }
+  .box { border: 1.5px solid #000; }
+  .co-name { font-size: 25px; font-weight: 800; color: #1d4ed8; padding: 8px 12px 2px; }
+  .co-addr { font-size: 10.5px; font-weight: 700; color: #c2410c; padding: 0 12px 6px; }
+  .title-bar { text-align: center; font-weight: 700; font-size: 14px; padding: 5px; border-top: 1px solid #000; letter-spacing: .5px; }
+  .info-grid { display: flex; border-top: 1px solid #000; }
+  .info-left, .info-right { flex: 1; padding: 7px 12px; font-size: 12px; line-height: 1.6; }
+  .info-right { border-left: 1px solid #000; }
+  .meta-row { display: flex; border-top: 1px solid #000; font-size: 12px; font-weight: 700; }
+  .meta-cell { flex: 1; padding: 5px 12px; border-left: 1px solid #000; }
+  .meta-cell:first-child { border-left: none; }
+  .dear { padding: 6px 12px; border-top: 1px solid #000; font-size: 12px; }
+  table.items { width: 100%; border-collapse: collapse; border-top: 1px solid #000; }
+  table.items th { border: 1px solid #000; padding: 6px 8px; font-size: 11.5px; font-weight: 700; text-align: center; }
+  .amount-words { border-top: 1px solid #000; padding: 8px 12px; font-weight: 700; font-size: 12.5px; }
+  .footer-sig { padding: 34px 12px 12px; font-weight: 700; color: #1d4ed8; border-top: 1px solid #000; font-size: 13px; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div class="doc-page">
+  <div class="box">
+    <div class="co-name">{{company.name}}</div>
+    <div class="co-addr">{{company.address}}</div>
+    <div class="title-bar">QUOTATION</div>
+    <div class="info-grid">
+      <div class="info-left">
+        <strong>THE CHAIRMAN / SECRETARY,</strong><br>
+        <strong>{{client.societyName}}</strong><br>
+        {{client.address}}
+      </div>
+      <div class="info-right">
+        <strong>QUOTATION NO:</strong> {{document.number}}<br>
+        <strong>DATE:</strong> {{document.date}}<br>
+        <strong>KIND ATTN.:</strong> {{client.contactPerson}}
+      </div>
+    </div>
+    <div class="meta-row">
+      <div class="meta-cell">LIFT DESCRIPTION: {{liftDescription}}</div>
+      <div class="meta-cell">NO. OF LIFTS: {{numberOfLifts}}</div>
+    </div>
+    <div class="dear">Dear Sir,</div>
+    <table class="items">
+      <thead><tr>
+        <th style="width:36px;">Sr.<br>No.</th>
+        <th>Description</th>
+        <th style="width:80px;">Unit Price</th>
+        <th style="width:44px;">Qty</th>
+        <th style="width:56px;">Unit</th>
+        <th style="width:90px;">Total Price</th>
+      </tr></thead>
+      <tbody>{{items}}</tbody>
+      <tfoot>
+        <tr><td colspan="5" style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">TOTAL</td><td style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">{{perLiftTotal}}</td></tr>
+        <tr><td colspan="5" style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">BALANCE TOTAL</td><td style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">{{grandTotal}}</td></tr>
+      </tfoot>
+    </table>
+    <div class="amount-words">{{grandTotalInWords}}</div>
+    <div class="footer-sig">{{company.name}}</div>
+  </div>
+</div>
+</body>
+</html>`
+}
+
 function defaultProformaTemplate() {
   return defaultQuotationTemplate()
-    .replace('<div class="doc-title">QUOTATION</div>', '<div class="doc-title">PROFORMA INVOICE</div>')
-    .replace('<span class="doc-badge">No: {{document.number}}</span>', '<span class="doc-badge">PI No: {{document.number}}</span>')
+    .replace('<div class="title-bar">QUOTATION</div>', '<div class="title-bar">PROFORMA INVOICE</div>')
+    .replace('<strong>QUOTATION NO:</strong>', '<strong>PROFORMA NO:</strong>')
 }
 
 function defaultInvoiceTemplate() {
-  return defaultQuotationTemplate()
+  return legacyBillingTemplate()
     .replace('<div class="doc-title">QUOTATION</div>', '<div class="doc-title">INVOICE</div>')
     .replace('<span class="doc-badge">No: {{document.number}}</span>', '<span class="doc-badge">Inv No: {{document.number}}</span>')
     .replace('Valid Until: {{document.validity}}', 'Due Date: {{document.dueDate}}')
 }
 
 function defaultTaxInvoiceTemplate() {
-  return defaultQuotationTemplate()
+  return legacyBillingTemplate()
     .replace('<div class="doc-title">QUOTATION</div>', '<div class="doc-title">TAX INVOICE</div>')
     .replace('<span class="doc-badge">No: {{document.number}}</span>', '<span class="doc-badge">Tax Inv: {{document.number}}</span>')
 }
 
 function defaultPOTemplate() {
-  return defaultQuotationTemplate()
+  return legacyBillingTemplate()
     .replace('<div class="doc-title">QUOTATION</div>', '<div class="doc-title">PURCHASE ORDER</div>')
     .replace('<span class="doc-badge">No: {{document.number}}</span>', '<span class="doc-badge">PO No: {{document.number}}</span>')
     .replace('<div class="card-lbl">Bill To</div>', '<div class="card-lbl">Vendor</div>')

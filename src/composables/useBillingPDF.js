@@ -129,7 +129,7 @@ function fc(v) {
 }
 
 // Indian currency number to words
-function numberToWords(amount) {
+export function numberToWords(amount) {
   const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
     'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
   const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
@@ -226,7 +226,7 @@ function buildItemsHtml(row, templateKey) {
       </tr>`
     }
 
-    if (templateKey === 'proforma' || templateKey === 'invoice') {
+    if (templateKey === 'invoice') {
       // 5 cols: S.No | Particulars | QTY | Rate | Amount
       const borderBottom = isLast ? '2px solid #000' : '1px solid #000'
       return `<tr>
@@ -238,15 +238,14 @@ function buildItemsHtml(row, templateKey) {
       </tr>`
     }
 
-    // quotation: 6 cols: S.No | Description | QTY | Unit | RATE | AMOUNT — alternating rows
-    const rowClass = i % 2 === 0 ? 'row-alt' : 'row-even'
-    return `<tr class="${rowClass}">
-      <td class="center">${i + 1}</td>
-      <td class="left">${item.description || ''}</td>
-      <td class="center">${qty}</td>
-      <td class="left">${item.unit || ''}</td>
-      <td class="right">${fc(rate)}</td>
-      <td class="right">${fc(qty * rate)}</td>
+    // quotation & proforma: 6 cols: Sr.No | Description | Unit Price | Qty | Unit | Total Price
+    return `<tr>
+      <td style="text-align:center;border:1px solid #000;padding:5px 8px;">${i + 1}</td>
+      <td style="border:1px solid #000;padding:5px 8px;">${item.description || ''}</td>
+      <td style="text-align:right;border:1px solid #000;padding:5px 8px;">${fc(rate)}</td>
+      <td style="text-align:center;border:1px solid #000;padding:5px 8px;">${qty}</td>
+      <td style="border:1px solid #000;padding:5px 8px;">${item.unit || ''}</td>
+      <td style="text-align:right;border:1px solid #000;padding:5px 8px;">${fc(qty * rate)}</td>
     </tr>`
   }).join('')
 }
@@ -418,7 +417,93 @@ ${row.freeAmc ? '<div class="sec-row">Free AMC: 1 Year</div>' : ''}`
 
 // ─── Fallback HTML (when no template is configured) ───────────────────────────
 
+// Quotation & Proforma — bordered A4 "bill invoice" letterhead format
+function buildQuotationStyleHtml(row, templateKey, company) {
+  const { docTitle, docNumber } = getDocMeta(row, templateKey)
+  const docTotal = row.total || 0
+  const lifts = row.numberOfLifts ? (Number(row.numberOfLifts) || 1) : 1
+  const grandTotal = lifts > 1 ? (Number(row.grandTotal) || docTotal * lifts) : docTotal
+  const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; }
+  .doc-page { width: 210mm; min-height: 297mm; padding: 12mm 14mm; }
+  .box { border: 1.5px solid #000; }
+  .co-name { font-size: 25px; font-weight: 800; color: #1d4ed8; padding: 8px 12px 2px; }
+  .co-addr { font-size: 10.5px; font-weight: 700; color: #c2410c; padding: 0 12px 6px; }
+  .title-bar { text-align: center; font-weight: 700; font-size: 14px; padding: 5px; border-top: 1px solid #000; letter-spacing: .5px; }
+  .info-grid { display: flex; border-top: 1px solid #000; }
+  .info-left, .info-right { flex: 1; padding: 7px 12px; font-size: 12px; line-height: 1.6; }
+  .info-right { border-left: 1px solid #000; }
+  .meta-row { display: flex; border-top: 1px solid #000; font-size: 12px; font-weight: 700; }
+  .meta-cell { flex: 1; padding: 5px 12px; border-left: 1px solid #000; }
+  .meta-cell:first-child { border-left: none; }
+  .dear { padding: 6px 12px; border-top: 1px solid #000; font-size: 12px; }
+  table.items { width: 100%; border-collapse: collapse; border-top: 1px solid #000; }
+  table.items th { border: 1px solid #000; padding: 6px 8px; font-size: 11.5px; font-weight: 700; text-align: center; }
+  .amount-words { border-top: 1px solid #000; padding: 8px 12px; font-weight: 700; font-size: 12.5px; }
+  .footer-sig { padding: 34px 12px 12px; font-weight: 700; color: #1d4ed8; border-top: 1px solid #000; font-size: 13px; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div class="doc-page">
+  <div class="box">
+    <div class="co-name">${company.name || ''}</div>
+    <div class="co-addr">${addr}</div>
+    <div class="title-bar">${docTitle}</div>
+    <div class="info-grid">
+      <div class="info-left">
+        <strong>THE CHAIRMAN / SECRETARY,</strong><br>
+        <strong>${row.projectName || row.clientName || ''}</strong><br>
+        ${row.clientAddress || ''}
+      </div>
+      <div class="info-right">
+        <strong>${docTitle} NO:</strong> ${docNumber}<br>
+        <strong>DATE:</strong> ${formatDate(row.date || row.createdAt)}<br>
+        <strong>KIND ATTN.:</strong> ${row.contactPerson || row.clientName || ''}
+      </div>
+    </div>
+    ${(row.liftDescription || lifts) ? `<div class="meta-row">
+      <div class="meta-cell">LIFT DESCRIPTION: ${row.liftDescription || '—'}</div>
+      <div class="meta-cell">NO. OF LIFTS: ${lifts}</div>
+    </div>` : ''}
+    <div class="dear">Dear Sir,</div>
+    <table class="items">
+      <thead><tr>
+        <th style="width:36px;">Sr.<br>No.</th>
+        <th>Description</th>
+        <th style="width:80px;">Unit Price</th>
+        <th style="width:44px;">Qty</th>
+        <th style="width:56px;">Unit</th>
+        <th style="width:90px;">Total Price</th>
+      </tr></thead>
+      <tbody>${buildItemsHtml(row, templateKey)}</tbody>
+      <tfoot>
+        <tr><td colspan="5" style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">TOTAL</td><td style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">${fc(docTotal)}</td></tr>
+        <tr><td colspan="5" style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">BALANCE TOTAL</td><td style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">${fc(grandTotal)}</td></tr>
+      </tfoot>
+    </table>
+    <div class="amount-words">${numberToWords(grandTotal).toUpperCase()}</div>
+    ${row.notes ? `<div style="padding:8px 12px;border-top:1px solid #000;font-size:11.5px;">${row.notes}</div>` : ''}
+    <div class="footer-sig">${company.name || ''}</div>
+  </div>
+</div>
+</body>
+</html>`
+}
+
 function buildFallbackHtml(row, templateKey, company) {
+  if (templateKey === 'quotation' || templateKey === 'proforma') {
+    return buildQuotationStyleHtml(row, templateKey, company)
+  }
+
   const { docTitle, docNumber } = getDocMeta(row, templateKey)
   const isBOM = templateKey === 'bom'
   const gst = row.gstPercent || 0
