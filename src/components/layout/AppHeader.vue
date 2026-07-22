@@ -189,7 +189,7 @@ const roleLabel = computed(() => ROLES[auth.user?.role]?.label || 'User')
 const MODULE_LABELS = {
   dashboard: 'Dashboard', reminders: 'Reminders', maintenance: 'Maintenance',
   amc: 'AMC Contracts', billing: 'Billing', projects: 'Projects',
-  configurations: 'Configurations',
+  hr: 'HR', configurations: 'Configurations',
 }
 
 const currentModuleLabel = computed(() => {
@@ -492,7 +492,13 @@ async function handleLogout() {
 [data-theme="light"] .dropdown-item:hover { background: rgba(220,38,38,0.06); color: #dc2626; }
 @media (max-width: 767px) {
   [data-theme="light"] .header-search-wrap.mobile-active { background: rgba(255,255,255,0.98); }
-  [data-theme="light"] .header-search-wrap.mobile-active .header-search { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.35); }
+  [data-theme="light"] .header-search-wrap.mobile-active .header-search { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.15); }
+  [data-theme="light"] .header-search-wrap.mobile-active .search-input { color: #1e293b; }
+  [data-theme="light"] .header-search-wrap.mobile-active .search-input::placeholder { color: rgba(30,41,59,0.5); }
+  [data-theme="light"] .header-search-wrap.mobile-active .search-icon { color: rgba(30,41,59,0.6); }
+  [data-theme="light"] .header-search-wrap.mobile-active .search-kbd { color: rgba(30,41,59,0.6); background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.15); }
+  [data-theme="light"] .header-search-wrap.mobile-active .search-clear { background: rgba(0,0,0,0.08); color: rgba(30,41,59,0.7); }
+  [data-theme="light"] .header-search-wrap.mobile-active .mobile-search-close { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.15); color: rgba(30,41,59,0.7); }
 }
 
 </style>

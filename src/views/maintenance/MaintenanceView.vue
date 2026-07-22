@@ -552,7 +552,7 @@
 
         <!-- Technician -->
         <div class="form-group">
-          <label class="label">Technician *</label>
+          <label class="label">Technician</label>
           <select v-model="monthCompletionForm.technicianName" class="input">
             <option value="">Select technician…</option>
             <option v-for="e in technicians" :key="e.id" :value="e.fullName || e.name">{{ e.fullName || e.name }}</option>
@@ -684,7 +684,7 @@
 
         <!-- Technician -->
         <div class="form-group">
-          <label class="label">Technician *</label>
+          <label class="label">Technician</label>
           <select v-model="completionForm.technicianName" class="input">
             <option value="">Select technician…</option>
             <option v-for="e in technicians" :key="e.id" :value="e.fullName || e.name">{{ e.fullName || e.name }}</option>
@@ -1368,7 +1368,6 @@ async function saveMonthCompletion() {
   const form = monthCompletionForm.value
   const contract = monthCompletionContract.value
   if (!form.month || !form.year) { ui.error('Month and year are required.'); return }
-  if (!form.technicianName) { ui.error('Technician name is required.'); return }
   savingMonthCompletion.value = true
   try {
     const monthKey = `${form.year}-${String(form.month).padStart(2, '0')}`
@@ -1523,7 +1522,6 @@ function handleCompletionSigImage(e) {
 async function saveCompletion() {
   const f = completionForm.value
   const row = completionTarget.value
-  if (!f.technicianName) { ui.error('Technician name is required.'); return }
   savingCompletion.value = true
   try {
     const completedDate = isTech.value ? today : (f.completedDate || today)

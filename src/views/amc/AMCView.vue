@@ -804,7 +804,7 @@
           <div v-if="isTech" style="font-size:10px;color:var(--ct-accent);margin-top:4px;">Locked to today — cannot be changed</div>
         </div>
         <div class="form-group">
-          <label class="label">Technician *</label>
+          <label class="label">Technician</label>
           <select v-model="logForm.technician" class="input">
             <option value="">Select technician…</option>
             <option v-for="t in (selectedContract?.technicians || [])" :key="t" :value="t">{{ t }}</option>
@@ -2729,8 +2729,8 @@ function handleSigImageUpload(e) {
 }
 
 async function saveLog() {
-  if (!logForm.value.date || !logForm.value.technician) {
-    ui.error('Date and technician are required.')
+  if (!logForm.value.date) {
+    ui.error('Date is required.')
     return
   }
   saving.value = true

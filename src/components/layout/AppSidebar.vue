@@ -95,7 +95,7 @@ import { useCompanyConfig } from '@/composables/useCompanyConfig'
 import {
   LayoutDashboard, FolderOpen,
   Receipt, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
-  Shield, ClipboardList, MoreVertical, Pin, Bell,
+  Shield, ClipboardList, MoreVertical, Pin, Bell, Users,
 } from 'lucide-vue-next'
 
 const ui = useUIStore()
@@ -237,6 +237,12 @@ const navGroups = [
     items: [
       { to: '/amc',      tab: 'amc',      label: 'AMC',      icon: Shield },
       { to: '/billing',  tab: 'billing',  label: 'Billing',  icon: Receipt },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { to: '/hr', tab: 'hr', label: 'HR', icon: Users },
     ],
   },
 ]

@@ -7,6 +7,8 @@ import { setupClickLock } from './utils/clickLock'
 import { registerFCMRouter, registerFCMUIStore } from './firebase/fcm'
 import { enableNetwork } from 'firebase/firestore'
 import { db } from './firebase/config'
+import { Capacitor } from '@capacitor/core'
+import { App as CapacitorApp } from '@capacitor/app'
 
 setupClickLock()
 
@@ -33,3 +35,17 @@ app.mount('#app')
 // Register router and UI store so FCM notification taps can navigate + toast
 registerFCMRouter(router)
 import('./stores/ui').then(({ useUIStore }) => registerFCMUIStore(useUIStore()))
+
+// Android hardware back button — without this, Capacitor's default behavior
+// is to exit the app immediately instead of navigating back within the SPA.
+const HOME_ROUTES = ['/dashboard', '/login']
+if (Capacitor.isNativePlatform()) {
+  CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+    const path = router.currentRoute.value.path
+    if (canGoBack && !HOME_ROUTES.includes(path)) {
+      window.history.back()
+    } else {
+      CapacitorApp.exitApp()
+    }
+  })
+}

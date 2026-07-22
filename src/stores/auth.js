@@ -12,7 +12,7 @@ const SESSION_KEY = 'me_session_v3'
 export const ROLES = {
   admin: {
     label: 'Admin',
-    tabs: ['dashboard', 'reminders', 'maintenance', 'amc', 'billing', 'projects', 'configurations'],
+    tabs: ['dashboard', 'reminders', 'maintenance', 'amc', 'billing', 'projects', 'hr', 'configurations'],
     canDelete: true,
     canCreateTasks: true,
     canCreateService: true,

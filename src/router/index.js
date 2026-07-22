@@ -32,6 +32,7 @@ const routes = [
       { path: 'amc',             name: 'AMC',             component: () => import('@/views/amc/AMCView.vue'),                       meta: { tab: 'amc' } },
       { path: 'billing',         name: 'Billing',         component: () => import('@/views/billing/BillingView.vue'),               meta: { tab: 'billing' } },
       { path: 'projects',        name: 'Projects',        component: () => import('@/views/projects/ProjectsView.vue'),             meta: { tab: 'projects' } },
+      { path: 'hr',              name: 'HR',              component: () => import('@/views/hr/HRView.vue'),                         meta: { tab: 'hr' } },
       { path: 'configurations',  name: 'Configurations',  component: () => import('@/views/configurations/ConfigurationsView.vue'), meta: { tab: 'configurations' } },
     ],
   },

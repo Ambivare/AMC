@@ -32,7 +32,9 @@ ios/
 android/.gradle/
 android/app/build/
 android/build/
-android/capacitor-cordova-android-plugins/build/
+android/capacitor-cordova-android-plugins/
+android/app/src/main/assets/
+android/app/src/main/res/xml/config.xml
 .claude/
 
 # Cloudflare Worker local secrets
