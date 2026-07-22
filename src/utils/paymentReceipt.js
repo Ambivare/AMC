@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import { savePDF } from './saveFile'
 import { numberToWords } from '@/composables/useBillingPDF'
+import { getStampDataUri } from './pdfLogo'
 
 const METHOD_LABELS = {
   cash: 'CASH', bank_transfer: 'BANK TRANSFER', cheque: 'CHEQUE', upi: 'UPI', other: 'OTHER',
@@ -120,6 +121,14 @@ export async function generatePaymentReceiptPdf({
 
   doc.setFont('helvetica', 'bold').setFontSize(9)
   doc.text(`For ${company.name || 'TAB Elevators'}`, MR - 3, boxY + 9, { align: 'right' })
+
+  try {
+    const stamp = await getStampDataUri()
+    if (stamp) {
+      const stampW = 30, stampH = stampW / 1.5
+      doc.addImage(stamp, 'PNG', MR - stampW, boxY - 16, stampW, stampH)
+    }
+  } catch { /* ignore stamp load failure */ }
 
   const safeName = (receivedFrom || 'receipt').replace(/[^\w-]+/g, '_')
   const filename = `Payment-Receipt-${safeName}-${receiptNo || ''}.pdf`

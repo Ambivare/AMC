@@ -53,3 +53,4 @@ export async function getStaticImageDataUri(path) {
 
 export const getHeaderImgDataUri = () => getStaticImageDataUri('/static/header.jpg')
 export const getFooterImgDataUri = () => getStaticImageDataUri('/static/footer.jpg')
+export const getStampDataUri = () => getStaticImageDataUri('/static/stamp.png')

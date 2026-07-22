@@ -97,27 +97,27 @@ body { font-family: 'Segoe UI', Arial, sans-serif; color:#1e293b; }
 .ip-header img { width:100%; display:block; }
 .ip-footer { width:210mm; height:18mm; overflow:hidden; position:absolute; bottom:0; left:0; }
 .ip-footer img { width:100%; display:block; }
-.ip-content { padding:7mm 12mm 4mm; height:249mm; overflow:hidden; font-size:10.3px; line-height:1.5; }
-.ip-title-bar { background:#0f172a; color:#fff; padding:7px 12px; font-size:12px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; border-radius:4px; margin:10px 0 8px; }
-.ip-ref-box { border:1.5px solid #0f172a; border-radius:6px; padding:10px 14px; margin:10px 0; }
-.ip-ref-box .ref { color:#b8860b; font-size:10.5px; font-weight:700; margin-bottom:4px; }
-.ip-ref-box .ttl { font-size:14px; font-weight:800; text-align:center; }
-table.ip-table { width:100%; border-collapse:collapse; font-size:9.6px; }
-table.ip-table th { background:#0f172a; color:#fff; padding:5px 6px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:.02em; }
-table.ip-table td { padding:4px 6px; border-bottom:1px solid #e2e8f0; vertical-align:top; }
+.ip-content { padding:8mm 13mm 4mm; height:249mm; overflow:hidden; font-size:12px; line-height:1.55; }
+.ip-title-bar { background:#0f172a; color:#fff; padding:9px 14px; font-size:14px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; border-radius:4px; margin:12px 0 9px; }
+.ip-ref-box { border:1.5px solid #0f172a; border-radius:6px; padding:13px 18px; margin:12px 0; }
+.ip-ref-box .ref { color:#b8860b; font-size:12.5px; font-weight:700; margin-bottom:5px; }
+.ip-ref-box .ttl { font-size:16.5px; font-weight:800; text-align:center; }
+table.ip-table { width:100%; border-collapse:collapse; font-size:11.3px; }
+table.ip-table th { background:#0f172a; color:#fff; padding:6px 8px; text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.02em; }
+table.ip-table td { padding:5.5px 7px; border-bottom:1px solid #e2e8f0; vertical-align:top; }
 table.ip-table tr:nth-child(even) td { background:#f8fafc; }
-.ip-p { margin-bottom:8px; text-align:justify; }
-.ip-list { margin:0 0 8px 16px; }
-.ip-list li { margin-bottom:5px; text-align:justify; }
-.ip-feat-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 16px; margin:6px 0 4px; }
-.ip-feat-grid div { font-size:9.8px; padding:2px 0; }
+.ip-p { margin-bottom:9px; text-align:justify; }
+.ip-list { margin:0 0 9px 20px; }
+.ip-list li { margin-bottom:6px; text-align:justify; }
+.ip-feat-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px 18px; margin:8px 0 6px; }
+.ip-feat-grid div { font-size:11.3px; padding:3px 0; }
 .ip-feat-grid div:before { content:'▸ '; color:#b8860b; font-weight:700; }
-.ip-total-row td { background:#f59e0b !important; color:#0f172a; font-weight:800; font-size:11px; }
-.ip-words { font-style:italic; font-weight:700; margin:8px 0; }
-.ip-note { font-size:9.5px; color:#7c2d12; font-weight:600; margin-top:4px; }
-.ip-sig-row { display:flex; justify-content:space-between; margin-top:20px; }
+.ip-total-row td { background:#f59e0b !important; color:#0f172a; font-weight:800; font-size:13px; }
+.ip-words { font-style:italic; font-weight:700; margin:10px 0; font-size:13px; }
+.ip-note { font-size:11px; color:#7c2d12; font-weight:600; margin-top:5px; }
+.ip-sig-row { display:flex; justify-content:space-between; margin-top:24px; }
 .ip-sig-row .col { width:45%; }
-.ip-sig-row .line { border-top:1.5px solid #0f172a; margin-top:32px; padding-top:5px; font-weight:700; font-size:10px; }
+.ip-sig-row .line { border-top:1.5px solid #0f172a; margin-top:36px; padding-top:6px; font-weight:700; font-size:12px; }
 `
 
 function pageWrap(headerImg, footerImg, contentHtml) {
