@@ -838,14 +838,16 @@
           <div style="font-size:12px;font-weight:600;color:var(--ct-accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">
             Service Checklist
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
-            <div v-for="(item, i) in SERVICE_CHECKLIST_LEFT" :key="'l'+i" style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ct-sub);border-bottom:1px solid rgba(255,255,255,0.04);">
-              <input type="checkbox" v-model="logForm.checklist['l'+i]" style="width:15px;height:15px;flex-shrink:0;" />
-              <span>{{ item }}</span>
+          <div class="checklist-table">
+            <div class="checklist-header">
+              <span class="cl-particulars">Particulars</span>
+              <span class="cl-status">Status</span>
+              <span class="cl-remarks">Remarks</span>
             </div>
-            <div v-for="(item, i) in SERVICE_CHECKLIST_RIGHT" :key="'r'+i" style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ct-sub);border-bottom:1px solid rgba(255,255,255,0.04);">
-              <input type="checkbox" v-model="logForm.checklist['r'+i]" style="width:15px;height:15px;flex-shrink:0;" />
-              <span>{{ item }}</span>
+            <div v-for="item in ALL_CHECKLIST_ITEMS" :key="item.key" class="checklist-row">
+              <span class="cl-particulars">{{ item.label }}</span>
+              <input type="checkbox" v-model="logForm.checklist[item.key]" class="cl-status" />
+              <input v-model="logForm.checklistRemarks[item.key]" class="input cl-remarks" placeholder="Remarks (optional)" />
             </div>
           </div>
         </div>
@@ -896,6 +898,19 @@
             <button v-if="logForm.signatureImage" type="button" class="btn-danger btn-sm" @click="logForm.signatureImage = ''">Remove</button>
           </div>
           <img v-if="logForm.signatureImage" :src="logForm.signatureImage" style="margin-top:8px;max-height:80px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);display:block;" />
+        </div>
+
+        <!-- Photo of signing person (printed like a passport photo beside the signature) -->
+        <div class="form-group form-full" style="margin-top:4px;">
+          <label class="label" style="margin-bottom:6px;">Photo of Signing Person <span style="font-size:10px;color:var(--ct-muted);font-weight:400;">(optional — printed beside the customer signature, like a passport photo)</span></label>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="btn-secondary btn-sm" @click="captureLogPersonPhoto">
+              <CameraIcon :size="13" /> Take Photo
+            </button>
+            <span v-if="logForm.personPhoto" style="font-size:11px;color:var(--ct-green);">✓ Photo captured</span>
+            <button v-if="logForm.personPhoto" type="button" class="btn-danger btn-sm" @click="logForm.personPhoto = ''">Remove</button>
+          </div>
+          <img v-if="logForm.personPhoto" :src="logForm.personPhoto" style="margin-top:8px;height:100px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);display:block;" />
         </div>
       </div>
       <template #footer>
@@ -1646,7 +1661,8 @@ import {
   Plus, Search, Pencil, Trash2, Save, Download, Mail,
   ClipboardList, FileText, FileDown, CalendarCheck, RefreshCw,
   CheckCircle2, FolderOpen, Upload, DollarSign, FilePlus2, AlertTriangle,
-  ClipboardCheck, Eye, TrendingUp, MessageCircle
+  ClipboardCheck, Eye, TrendingUp, MessageCircle,
+  Camera as CameraIcon
 } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
@@ -1667,7 +1683,7 @@ import { useExport } from '@/composables/useExport'
 import { convertHtmlToPdf, triggerDownload } from '@/composables/usePdfApiService'
 import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
 import { notifyWorker } from '@/utils/notifyWorker'
-import { SERVICE_CHECKLIST_LEFT, SERVICE_CHECKLIST_RIGHT, defaultServiceChecklist, generateServiceReportPdf } from '@/utils/serviceReport'
+import { SERVICE_CHECKLIST_LEFT, SERVICE_CHECKLIST_RIGHT, defaultServiceChecklist, defaultServiceChecklistRemarks, generateServiceReportPdf } from '@/utils/serviceReport'
 import { generatePaymentReceiptPdf } from '@/utils/paymentReceipt'
 import { defaultContractTemplate } from '@/utils/contractTemplate'
 import { numberToWords } from '@/composables/useBillingPDF'
@@ -1675,6 +1691,11 @@ import { getStampDataUri } from '@/utils/pdfLogo'
 
 const ui = useUIStore()
 const authStore = useAuthStore()
+
+const ALL_CHECKLIST_ITEMS = [
+  ...SERVICE_CHECKLIST_LEFT.map((label, i) => ({ key: `l${i}`, label })),
+  ...SERVICE_CHECKLIST_RIGHT.map((label, i) => ({ key: `r${i}`, label })),
+]
 const activity = useActivityStore()
 const { _drawHeader, _drawFooter, _sectionLabel, _infoGrid, _toRs, _C, _MARGIN, _PAGE_W, _getCtx, _drawReceiptHeader, _drawReceiptFooter, _drawBlackSig, _RECEIPT } = usePDF()
 const { showExportDialog, dialogVisible: expDlgVisible, selectedPeriod: expPeriod, exportType: expType, exporting: expRunning, runExport, cancelExport } = useExport()
@@ -2669,7 +2690,7 @@ const maintenanceMonths = computed(() => {
 
 const showLogModal = ref(false)
 const editingLog = ref(null)
-const defaultLogForm = () => ({ month: new Date().getMonth() + 1, year: currentYear, date: new Date().toISOString().split('T')[0], technician: '', remarks: '', signatoryName: '', signatoryDesignation: '', signature: '', signatureImage: '', buildingName: '', wingName: '', liftNo: '', checklist: defaultServiceChecklist(), technicianSignature: '' })
+const defaultLogForm = () => ({ month: new Date().getMonth() + 1, year: currentYear, date: new Date().toISOString().split('T')[0], technician: '', remarks: '', signatoryName: '', signatoryDesignation: '', signature: '', signatureImage: '', buildingName: '', wingName: '', liftNo: '', checklist: defaultServiceChecklist(), checklistRemarks: defaultServiceChecklistRemarks(), technicianSignature: '', personPhoto: '' })
 const logForm = ref(defaultLogForm())
 
 // Lift selection for the Log Maintenance modal (keeps names/ids in sync)
@@ -2753,7 +2774,9 @@ function openEditLog(log) {
     wingName: log.wingName || '',
     liftNo: log.liftNo || '',
     checklist: log.checklist || defaultServiceChecklist(),
+    checklistRemarks: log.checklistRemarks || defaultServiceChecklistRemarks(),
     technicianSignature: log.technicianSignature || '',
+    personPhoto: log.personPhoto || '',
   }
   showLogModal.value = true
   // attempt to map existing building/wing/lift from the log back into the selector
@@ -2767,6 +2790,21 @@ function handleSigImageUpload(e) {
   reader.onload = (ev) => { logForm.value.signatureImage = ev.target.result }
   reader.readAsDataURL(file)
   e.target.value = ''
+}
+
+async function captureLogPersonPhoto() {
+  try {
+    const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+    const photo = await Camera.getPhoto({
+      quality: 70,
+      resultType: CameraResultType.DataUrl,
+      source: CameraSource.Camera,
+      saveToGallery: false,
+    })
+    logForm.value.personPhoto = photo.dataUrl
+  } catch (e) {
+    if (e?.message && !/cancel/i.test(e.message)) ui.error('Could not capture photo.')
+  }
 }
 
 async function saveLog() {
@@ -2797,7 +2835,9 @@ async function saveLog() {
       signature: logForm.value.signature,
       signatureImage: logForm.value.signatureImage || '',
       checklist: logForm.value.checklist,
+      checklistRemarks: logForm.value.checklistRemarks || {},
       technicianSignature: logForm.value.technicianSignature || '',
+      personPhoto: logForm.value.personPhoto || '',
       loggedAt: completedAt,
       completedAt,
       completedBy: authStore.user?.fullName || authStore.user?.username || '',
@@ -2844,11 +2884,13 @@ async function generateMaintenanceReceipt(log) {
       reportNo: (log.contractNumber || '') + (log.monthKey ? '/' + log.monthKey : ''),
       date: log.date,
       checklist: log.checklist || defaultServiceChecklist(),
+      checklistRemarks: log.checklistRemarks || defaultServiceChecklistRemarks(),
       remarks: log.remarks,
       technicianName: log.technician || log.technicianName || '',
       technicianSignature: log.technicianSignature || '',
       customerName: log.signatoryName || '',
       customerSignature: sigSrc,
+      personPhoto: log.personPhoto || '',
     }, ui)
     return true
   } catch (e) {
@@ -3500,4 +3542,26 @@ watch(() => ui.scheduleContext, (ctx) => {
 [data-theme="light"] .proj-dd { background: #ffffff; border-color: #e2e8f0; }
 .proj-dd-item { color: var(--ct-primary); border-bottom: 1px solid rgba(255,255,255,0.05); }
 [data-theme="light"] .proj-dd-item { border-bottom-color: #f1f5f9; }
+
+.checklist-table { border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+.checklist-header, .checklist-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; }
+.checklist-header {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  color: #64748b; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.checklist-row { font-size: 12.5px; color: var(--ct-sub); border-bottom: 1px solid rgba(255,255,255,0.04); }
+.checklist-row:last-child { border-bottom: none; }
+.cl-particulars { flex: 1; min-width: 0; }
+.cl-status { width: 16px; height: 16px; flex-shrink: 0; }
+.cl-remarks { width: 220px; flex-shrink: 0; font-size: 12px !important; padding: 6px 10px !important; }
+[data-theme="light"] .checklist-table { border-color: #e2e8f0; }
+[data-theme="light"] .checklist-header { border-bottom-color: #e2e8f0; }
+[data-theme="light"] .checklist-row { border-bottom-color: #f1f5f9; }
+
+@media (max-width: 700px) {
+  .checklist-header { display: none; }
+  .checklist-row { flex-wrap: wrap; }
+  .cl-particulars { width: 100%; flex: none; }
+  .cl-remarks { width: 100%; }
+}
 </style>
