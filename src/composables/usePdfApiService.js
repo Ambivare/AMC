@@ -108,7 +108,10 @@ export async function convertHtmlToPdf(html, filename, documentRef) {
 
 /**
  * Download a PDF from a URL.
- * - Native APK: fetches bytes and writes to device Downloads folder via Capacitor Filesystem.
+ * - Native APK: fetches bytes, writes to the app's private cache (the only
+ *   directory writable without special permission on Android 10+ scoped
+ *   storage), then hands off to the native Share sheet so the user can save
+ *   it to Downloads, Drive, WhatsApp, etc. themselves.
  * - Browser: triggers standard <a> download.
  */
 export async function triggerDownload(retrieveUrl, filename) {
@@ -126,18 +129,14 @@ export async function triggerDownload(retrieveUrl, filename) {
         reader.readAsDataURL(blob)
       })
       const { Filesystem, Directory } = await import('@capacitor/filesystem')
-      // Try user-visible Downloads folder first, fall back to app Documents
-      let saved = false
-      try {
-        await Filesystem.writeFile({ path: `Download/${fname}`, data: base64, directory: Directory.ExternalStorage, recursive: true })
-        saved = true
-      } catch { /* fall through */ }
-      if (!saved) {
-        await Filesystem.writeFile({ path: fname, data: base64, directory: Directory.Documents, recursive: true })
-      }
+      await Filesystem.writeFile({ path: fname, data: base64, directory: Directory.Cache, recursive: true })
+      const { uri } = await Filesystem.getUri({ path: fname, directory: Directory.Cache })
+      const { Share } = await import('@capacitor/share')
+      await Share.share({ title: fname, files: [uri], dialogTitle: 'Save or share' })
       return
     }
   } catch (e) {
+    if (/cancel/i.test(e?.message || '')) return
     console.warn('[PDF] Native download failed, falling back to browser:', e)
   }
   // Browser fallback

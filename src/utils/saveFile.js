@@ -13,29 +13,29 @@ function toBase64(data) {
   return btoa(binary)
 }
 
+// Android 10+ (scoped storage) blocks direct writes to public storage
+// (Directory.ExternalStorage / Directory.Documents) with EACCES unless the
+// app holds the broad MANAGE_EXTERNAL_STORAGE permission, which this app
+// doesn't request. The reliable, permission-free approach on every modern
+// Android version: write to the app's private cache (always writable) and
+// hand off to the native Share sheet (backed by the FileProvider already
+// declared in AndroidManifest.xml) so the user can save it to Downloads,
+// Drive, WhatsApp, etc. themselves.
 async function writeToDevice(filename, base64, ui) {
   const { Filesystem, Directory } = await import('@capacitor/filesystem')
-  // Try user-visible Downloads folder first, fall back to app Documents
-  try {
-    await Filesystem.writeFile({
-      path: `Download/${filename}`,
-      data: base64,
-      directory: Directory.ExternalStorage,
-      recursive: true,
-    })
-    ui?.success(`Saved to Downloads: ${filename}`)
-    return
-  } catch { /* fall through to Documents */ }
   try {
     await Filesystem.writeFile({
       path: filename,
       data: base64,
-      directory: Directory.Documents,
+      directory: Directory.Cache,
       recursive: true,
     })
-    ui?.success(`Saved to Documents: ${filename}`)
+    const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache })
+    const { Share } = await import('@capacitor/share')
+    await Share.share({ title: filename, files: [uri], dialogTitle: 'Save or share' })
   } catch (e) {
-    console.error('[saveFile] Filesystem write failed:', e)
+    if (/cancel/i.test(e?.message || '')) return
+    console.error('[saveFile] Save/share failed:', e)
     ui?.error('Could not save file: ' + (e?.message || 'Unknown error'))
   }
 }
