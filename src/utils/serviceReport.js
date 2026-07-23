@@ -77,7 +77,7 @@ export async function generateServiceReportPdf({
   customerSignature = '',
   personPhoto = '',
 }, ui) {
-  const PW = 297, PH = 226, ML = 10, MR = 287
+  const PW = 297, PH = 236, ML = 10, MR = 287
   const doc = new jsPDF({ unit: 'mm', format: [PW, PH], orientation: 'landscape' })
   const CW = MR - ML
   const stamp = await getStampDataUri()
@@ -92,19 +92,19 @@ export async function generateServiceReportPdf({
   doc.setFont('helvetica', 'bold').setFontSize(20).setTextColor(15, 23, 42)
   doc.text(company.name || 'TAB Elevators', ML, y)
 
-  // Company address / phone / email — top-right, to the left of the logo
-  doc.setFont('helvetica', 'normal').setFontSize(7.5).setTextColor(71, 85, 105)
+  // Company address / phone / email — left, stacked below the name (logo stays
+  // isolated in its own top-right corner so long addresses can never collide with it)
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(71, 85, 105)
   const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
-  const RX = MR - 21
-  let ry = 9
+  y += 5
   if (addr) {
-    const addrLines = doc.splitTextToSize(addr, 150)
-    addrLines.slice(0, 2).forEach(l => { doc.text(l, RX, ry, { align: 'right' }); ry += 3.2 })
+    const addrLines = doc.splitTextToSize(addr, 190)
+    addrLines.slice(0, 2).forEach(l => { doc.text(l, ML, y); y += 3.6 })
   }
   const contactLine = [company.phone ? `Mob: ${company.phone}` : '', company.email || ''].filter(Boolean).join('   |   ')
-  if (contactLine) { doc.text(contactLine, RX, ry, { align: 'right' }); ry += 3.2 }
+  if (contactLine) { doc.text(contactLine, ML, y); y += 3.6 }
 
-  y = Math.max(y + 5, ry + 1)
+  y += 3
   doc.setDrawColor(15, 23, 42).setLineWidth(0.4).line(ML, y, MR, y)
   y += 6
 
@@ -177,7 +177,7 @@ export async function generateServiceReportPdf({
   y += Math.max(6, remarkLines.length * 4.5) + 6
 
   // Signature boxes + passport-style photo of the signing person
-  const sigH = 26
+  const sigH = 30
   const photoW = 22
   const gapSmall = 6
   const sigW = (CW - 10 - gapSmall - photoW) / 2
@@ -196,7 +196,7 @@ export async function generateServiceReportPdf({
 
   // Company stamp — placed directly on the technician signature area, no border box
   if (stamp?.startsWith?.('data:image')) {
-    const stampW = 13, stampH = stampW * (835 / 735)
+    const stampW = 17, stampH = stampW * (835 / 735)
     try { doc.addImage(stamp, 'PNG', ML + sigW - stampW - 3, y + 1, stampW, stampH) } catch { /* ignore bad image data */ }
   }
 
