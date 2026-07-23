@@ -93,16 +93,15 @@ export async function generateServiceReportPdf({
   doc.text(company.name || 'TAB Elevators', ML, y)
 
   // Company address / phone / email — left, stacked below the name (logo stays
-  // isolated in its own top-right corner so long addresses can never collide with it)
+  // isolated in its own top-right corner so long addresses can never collide with it).
+  // Hardcoded — do not source from Configurations (unreliable in the field).
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(71, 85, 105)
-  const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
+  const addr = 'S.No. 30/14, Uniti Industries, Behind Panchamukhi Hanuman Mandir, Narhe Dhayari Road, Narhe, Pune, Maharashtra 411041'
   y += 5
-  if (addr) {
-    const addrLines = doc.splitTextToSize(addr, 190)
-    addrLines.slice(0, 2).forEach(l => { doc.text(l, ML, y); y += 3.6 })
-  }
-  const contactLine = [company.phone ? `Mob: ${company.phone}` : '', company.email || ''].filter(Boolean).join('   |   ')
-  if (contactLine) { doc.text(contactLine, ML, y); y += 3.6 }
+  const addrLines = doc.splitTextToSize(addr, 190)
+  addrLines.slice(0, 2).forEach(l => { doc.text(l, ML, y); y += 3.6 })
+  const contactLine = 'Mob: 9545802273 / 9765569919   |   tabelevatorsandsystems@gmail.com'
+  doc.text(contactLine, ML, y); y += 3.6
 
   y += 3
   doc.setDrawColor(15, 23, 42).setLineWidth(0.4).line(ML, y, MR, y)
