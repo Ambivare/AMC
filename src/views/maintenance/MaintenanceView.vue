@@ -1391,7 +1391,8 @@ async function captureMonthPersonPhoto() {
   try {
     const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
     const photo = await Camera.getPhoto({
-      quality: 70,
+      quality: 60,
+      width: 480,
       resultType: CameraResultType.DataUrl,
       source: CameraSource.Camera,
       saveToGallery: false,
@@ -1452,7 +1453,8 @@ async function saveMonthCompletion() {
     }
     showMonthCompletionModal.value = false
   } catch (e) {
-    ui.error('Failed to save completion.')
+    console.error('[Maintenance] saveMonthCompletion failed:', e)
+    ui.error('Failed to save completion: ' + (e?.message || 'Unknown error'))
   } finally {
     savingMonthCompletion.value = false
   }

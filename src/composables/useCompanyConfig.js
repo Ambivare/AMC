@@ -16,8 +16,16 @@ export function useCompanyConfig() {
     if (!loadPromise) {
       loadPromise = getAll(Collections.CONFIGURATIONS)
         .then(docs => {
-          if (docs.length && docs[0].company) {
-            company.value = { ...company.value, ...docs[0].company }
+          if (!docs.length) return
+          // Multiple Configurations docs can exist — always use the most
+          // recently saved one (matches useBillingPDF.js's loadConfig()).
+          const latest = docs.sort((a, b) => {
+            const tsA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0
+            const tsB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0
+            return tsB - tsA
+          })[0]
+          if (latest.company) {
+            company.value = { ...company.value, ...latest.company }
           }
         })
         .catch(() => {})

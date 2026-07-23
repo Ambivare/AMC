@@ -2796,7 +2796,8 @@ async function captureLogPersonPhoto() {
   try {
     const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
     const photo = await Camera.getPhoto({
-      quality: 70,
+      quality: 60,
+      width: 480,
       resultType: CameraResultType.DataUrl,
       source: CameraSource.Camera,
       saveToGallery: false,
@@ -2864,7 +2865,8 @@ async function saveLog() {
       ui.warning('Visit saved but the service report PDF could not be generated.')
     }
   } catch (e) {
-    ui.error(editingLog.value ? 'Failed to update log.' : 'Failed to log maintenance.')
+    console.error('[AMC] saveLog failed:', e)
+    ui.error((editingLog.value ? 'Failed to update log: ' : 'Failed to log maintenance: ') + (e?.message || 'Unknown error'))
   } finally {
     saving.value = false
   }
