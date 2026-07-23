@@ -2,6 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { savePDF } from './saveFile'
 import { numberToWords } from '@/composables/useBillingPDF'
+import { getStampDataUri } from './pdfLogo'
 
 // Hardcoded 24-item lift maintenance checklist (matches the printed TAB Elevators
 // service report stationery) — two columns of 12 items each.
@@ -42,6 +43,13 @@ export function defaultServiceChecklist() {
   return obj
 }
 
+export function defaultServiceChecklistRemarks() {
+  const obj = {}
+  SERVICE_CHECKLIST_LEFT.forEach((_, i) => { obj[`l${i}`] = '' })
+  SERVICE_CHECKLIST_RIGHT.forEach((_, i) => { obj[`r${i}`] = '' })
+  return obj
+}
+
 function fmtDate(d) {
   if (!d) return '—'
   const dt = typeof d === 'string' ? new Date(d + 'T00:00:00') : d
@@ -51,8 +59,9 @@ function fmtDate(d) {
 
 /**
  * Generates the landscape A4 "Service Report" PDF matching the printed
- * stationery: header, site/date, 2-column 24-item checklist, remark,
- * technician + customer signatures, and the standard disclaimer line.
+ * stationery: header, site/date, 24-item Particulars/Status/Remarks
+ * checklist, remark, technician + customer signatures (with a passport-style
+ * photo of the signing person), and the standard disclaimer line.
  */
 export async function generateServiceReportPdf({
   company = {},
@@ -60,32 +69,42 @@ export async function generateServiceReportPdf({
   reportNo = '',
   date = '',
   checklist = {},
+  checklistRemarks = {},
   remarks = '',
   technicianName = '',
   technicianSignature = '',
   customerName = '',
   customerSignature = '',
+  personPhoto = '',
 }, ui) {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' })
-  const PW = 297, ML = 10, MR = 287
+  const PW = 297, PH = 226, ML = 10, MR = 287
+  const doc = new jsPDF({ unit: 'mm', format: [PW, PH], orientation: 'landscape' })
   const CW = MR - ML
+  const stamp = await getStampDataUri()
 
+  // Logo top-right
   if (company.logoUrl?.startsWith?.('data:image')) {
     try { doc.addImage(company.logoUrl, 'PNG', MR - 18, 6, 18, 18) } catch { /* ignore bad image data */ }
   }
 
-  let y = 12
-  // Company name + address
+  let y = 14
+  // Company name — left
   doc.setFont('helvetica', 'bold').setFontSize(20).setTextColor(15, 23, 42)
   doc.text(company.name || 'TAB Elevators', ML, y)
-  y += 5
-  doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(71, 85, 105)
-  const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
-  const phones = [company.phone].filter(Boolean).join(' / ')
-  if (addr) { doc.text(doc.splitTextToSize(addr, CW)[0], ML, y); y += 4 }
-  if (phones) { doc.text(`Mob: ${phones}`, ML, y); y += 4 }
 
-  y += 2
+  // Company address / phone / email — top-right, to the left of the logo
+  doc.setFont('helvetica', 'normal').setFontSize(7.5).setTextColor(71, 85, 105)
+  const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
+  const RX = MR - 21
+  let ry = 9
+  if (addr) {
+    const addrLines = doc.splitTextToSize(addr, 150)
+    addrLines.slice(0, 2).forEach(l => { doc.text(l, RX, ry, { align: 'right' }); ry += 3.2 })
+  }
+  const contactLine = [company.phone ? `Mob: ${company.phone}` : '', company.email || ''].filter(Boolean).join('   |   ')
+  if (contactLine) { doc.text(contactLine, RX, ry, { align: 'right' }); ry += 3.2 }
+
+  y = Math.max(y + 5, ry + 1)
   doc.setDrawColor(15, 23, 42).setLineWidth(0.4).line(ML, y, MR, y)
   y += 6
 
@@ -111,27 +130,37 @@ export async function generateServiceReportPdf({
   doc.setDrawColor(203, 213, 225).line(ML, y, MR, y)
   y += 7
 
-  // ── Checklist table (2 columns of 12) ──────────────────────────────────────
-  const rows = SERVICE_CHECKLIST_LEFT.map((label, i) => [
-    label, checklist[`l${i}`] === false ? 'X' : 'OK',
-    SERVICE_CHECKLIST_RIGHT[i], checklist[`r${i}`] === false ? 'X' : 'OK',
-  ])
+  // ── Checklist table — Particulars / Status / Remarks, 2 groups of 12 ───────
+  const rows = SERVICE_CHECKLIST_LEFT.map((label, i) => {
+    const lOk = checklist[`l${i}`] !== false
+    const rOk = checklist[`r${i}`] !== false
+    return [
+      label, lOk ? 'OK' : 'X', checklistRemarks[`l${i}`] || '',
+      SERVICE_CHECKLIST_RIGHT[i], rOk ? 'OK' : 'X', checklistRemarks[`r${i}`] || '',
+    ]
+  })
 
   autoTable(doc, {
     startY: y,
-    head: [],
+    head: [['Particulars', 'Status', 'Remarks', 'Particulars', 'Status', 'Remarks']],
     body: rows,
     theme: 'grid',
     margin: { left: ML, right: ML },
-    styles: { fontSize: 9, cellPadding: 2, textColor: [30, 41, 59], lineColor: [148, 163, 184], lineWidth: 0.15 },
+    styles: { fontSize: 9.8, cellPadding: 2.4, textColor: [30, 41, 59], lineColor: [148, 163, 184], lineWidth: 0.15 },
+    headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold', fontSize: 9.5, halign: 'left' },
     columnStyles: {
-      0: { cellWidth: 105 },
-      1: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
-      2: { cellWidth: 105 },
-      3: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
+      0: { cellWidth: 74 },
+      1: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+      2: { cellWidth: 46 },
+      3: { cellWidth: 74 },
+      4: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+      5: { cellWidth: 46 },
     },
     didParseCell(data) {
-      if (data.column.index === 1 || data.column.index === 3) {
+      if (data.section === 'head' && (data.column.index === 1 || data.column.index === 4)) {
+        data.cell.styles.halign = 'center'
+      }
+      if (data.section === 'body' && (data.column.index === 1 || data.column.index === 4)) {
         data.cell.styles.textColor = data.cell.raw === 'X' ? [220, 38, 38] : [16, 129, 76]
       }
     },
@@ -147,9 +176,12 @@ export async function generateServiceReportPdf({
   doc.text(remarkLines, ML + 18, y)
   y += Math.max(6, remarkLines.length * 4.5) + 6
 
-  // Signature boxes
-  const sigW = (CW - 10) / 2
+  // Signature boxes + passport-style photo of the signing person
   const sigH = 26
+  const photoW = 22
+  const gapSmall = 6
+  const sigW = (CW - 10 - gapSmall - photoW) / 2
+
   function drawSigBox(x, label, sigData, name) {
     doc.setDrawColor(148, 163, 184).setLineWidth(0.2).rect(x, y, sigW, sigH)
     if (sigData?.startsWith?.('data:image')) {
@@ -161,7 +193,24 @@ export async function generateServiceReportPdf({
     if (name) doc.text(name, x + sigW - 3, y + sigH - 3, { align: 'right' })
   }
   drawSigBox(ML, 'Technician Signature', technicianSignature, technicianName)
-  drawSigBox(ML + sigW + 10, 'Customer Signature', customerSignature, customerName)
+
+  // Company stamp — placed directly on the technician signature area, no border box
+  if (stamp?.startsWith?.('data:image')) {
+    const stampW = 13, stampH = stampW * (835 / 735)
+    try { doc.addImage(stamp, 'PNG', ML + sigW - stampW - 3, y + 1, stampW, stampH) } catch { /* ignore bad image data */ }
+  }
+
+  const customerBoxX = ML + sigW + 10
+  drawSigBox(customerBoxX, 'Customer Signature', customerSignature, customerName)
+
+  const photoX = customerBoxX + sigW + gapSmall
+  doc.setDrawColor(148, 163, 184).setLineWidth(0.2).rect(photoX, y, photoW, sigH)
+  if (personPhoto?.startsWith?.('data:image')) {
+    try { doc.addImage(personPhoto, 'JPEG', photoX + 1, y + 1, photoW - 2, sigH - 2) } catch { /* ignore bad image data */ }
+  } else {
+    doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(148, 163, 184)
+    doc.text('PHOTO', photoX + photoW / 2, y + sigH / 2, { align: 'center' })
+  }
   y += sigH + 6
 
   // Disclaimer

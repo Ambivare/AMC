@@ -9,7 +9,7 @@
 //   {{NUM_LIFTS}} {{LIFT_TYPOLOGY}} {{PASSENGER_TYPE}} {{CONTRACT_TYPE}} {{CONTRACT_PERIOD}}
 //   {{LIFT_MAKE}} {{LIFT_DOOR_TYPE}} {{LIFT_LOAD}} {{LIFT_HEIGHT}}
 //   {{CONTRACT_VALUE}} {{GST_PERCENT}} {{GST_AMOUNT}} {{TOTAL_VALUE}} {{AMOUNT_WORDS}}
-//   {{PAYMENT_TERMS}} {{DURATION}}
+//   {{PAYMENT_TERMS}} {{DURATION}} {{STAMP_IMG}}
 // Conditional blocks (comment-delimited, stripped/unwrapped like DISCOUNT_ROW):
 //   <!-- NONCOMP_START --> ... <!-- NONCOMP_END -->   (shown when non-comprehensive)
 //   <!-- COMP_START --> ... <!-- COMP_END -->         (shown when comprehensive)
@@ -78,6 +78,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #2c2
 .sig-box { width: 45%; }
 .sig-box .sig-line { border-top: 1px solid #333; margin-top: 30px; padding-top: 6px; font-size: 13px; font-weight: 600; color: #1a1a2e; }
 .sig-box .sig-role { font-size: 11.5px; color: #777; margin-top: 3px; }
+.stamp-img img { width: 22mm; margin-bottom: -46px; opacity: 0.92; }
 
 .footer { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; padding: 12px 34px; }
 .footer-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -246,6 +247,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #2c2
 
     <div class="sig-section">
       <div class="sig-box">
+        <div class="stamp-img">{{STAMP_IMG}}</div>
         <div class="sig-line">Authorized Company Person</div>
         <div class="sig-role">For {{company.name}}</div>
         <div style="font-size:10.5px; color:#555; margin-top:8px;">Date: {{LETTER_DATE}}</div>

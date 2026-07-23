@@ -1671,6 +1671,7 @@ import { SERVICE_CHECKLIST_LEFT, SERVICE_CHECKLIST_RIGHT, defaultServiceChecklis
 import { generatePaymentReceiptPdf } from '@/utils/paymentReceipt'
 import { defaultContractTemplate } from '@/utils/contractTemplate'
 import { numberToWords } from '@/composables/useBillingPDF'
+import { getStampDataUri } from '@/utils/pdfLogo'
 
 const ui = useUIStore()
 const authStore = useAuthStore()
@@ -2368,8 +2369,11 @@ async function generateContractPdf() {
     const gstAmount = Number(row?.gstAmount) || 0
     const totalValue = Number(row?.totalWithGST) || (contractValue + gstAmount)
 
+    const stampUri = await getStampDataUri()
+
     let html = template
     html = html.replaceAll('{{company.logo}}', company.logoUrl ? `<img src="${company.logoUrl}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;">` : '')
+    html = html.replaceAll('{{STAMP_IMG}}', stampUri ? `<img src="${stampUri}" alt="Stamp">` : '')
     html = html.replaceAll('{{company.name}}', company.name || '')
     html = html.replaceAll('{{company.address}}', [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', '))
     html = html.replaceAll('{{company.phone}}', company.phone || '')

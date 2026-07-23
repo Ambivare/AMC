@@ -118,6 +118,7 @@ table.ip-table tr:nth-child(even) td { background:#f8fafc; }
 .ip-sig-row { display:flex; justify-content:space-between; margin-top:24px; }
 .ip-sig-row .col { width:45%; }
 .ip-sig-row .line { border-top:1.5px solid #0f172a; margin-top:36px; padding-top:6px; font-weight:700; font-size:12px; }
+.ip-stamp-img img { width:26mm; margin-bottom:-18px; opacity:.92; }
 `
 
 function pageWrap(headerImg, footerImg, contentHtml) {
@@ -128,7 +129,7 @@ function pageWrap(headerImg, footerImg, contentHtml) {
   </div>`
 }
 
-export function renderInstallationProposalHtml(row, headerImg, footerImg) {
+export function renderInstallationProposalHtml(row, headerImg, footerImg, stampImg) {
   const remarks = row.liftSpecRemarks?.length ? row.liftSpecRemarks : DEFAULT_LIFT_SPEC_REMARKS
   const items = row.items?.length ? row.items : [DEFAULT_ELEVATOR_ITEM()]
   const scope = row.clientScope?.length ? row.clientScope : CLIENT_SCOPE_WORK_ITEMS.map(i => ({ label: i.label, value: i.default, remarks: '' }))
@@ -255,6 +256,7 @@ export function renderInstallationProposalHtml(row, headerImg, footerImg) {
 
     <div class="ip-sig-row">
       <div class="col">
+        <div class="ip-stamp-img">${stampImg ? `<img src="${stampImg}" alt="Stamp">` : ''}</div>
         <div class="line">Proposed By<br>TAB Elevators and Systems</div>
       </div>
       <div class="col">

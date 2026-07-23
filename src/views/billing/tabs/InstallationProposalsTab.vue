@@ -276,7 +276,7 @@ import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
 import { generateOrGetPdf, triggerDownload } from '@/composables/usePdfApiService'
-import { getHeaderImgDataUri, getFooterImgDataUri } from '@/utils/pdfLogo'
+import { getHeaderImgDataUri, getFooterImgDataUri, getStampDataUri } from '@/utils/pdfLogo'
 import {
   LIFT_SPEC_ITEMS, DEFAULT_LIFT_SPEC_REMARKS, CLIENT_SCOPE_WORK_ITEMS,
   DEFAULT_ELEVATOR_ITEM, renderInstallationProposalHtml,
@@ -451,8 +451,8 @@ async function downloadPDF(row) {
   if (pdfLoading.value[row.id]) return
   pdfLoading.value[row.id] = true
   try {
-    const [headerImg, footerImg] = await Promise.all([getHeaderImgDataUri(), getFooterImgDataUri()])
-    const html = renderInstallationProposalHtml(row, headerImg, footerImg)
+    const [headerImg, footerImg, stampImg] = await Promise.all([getHeaderImgDataUri(), getFooterImgDataUri(), getStampDataUri()])
+    const html = renderInstallationProposalHtml(row, headerImg, footerImg, stampImg)
     const filename = `${row.proposalNo || 'Installation-Proposal'}.pdf`
     const url = await generateOrGetPdf(row, 'installationProposal', html, filename)
     await triggerDownload(url, filename)

@@ -65,7 +65,7 @@ export async function generatePaymentReceiptPdf({
   doc.setDrawColor(15, 23, 42).setLineWidth(0.3).line(ML, y, MR, y)
   y += 4.5
   doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(194, 65, 12)
-  doc.text('Electrical Contractors & Maintenance of All Types of Lifts', PW / 2, y, { align: 'center' })
+  doc.text('Maintenance & Installation of All Types of Elevators', PW / 2, y, { align: 'center' })
   y += 4
   doc.setDrawColor(15, 23, 42).line(ML, y, MR, y)
   y += 6
@@ -125,8 +125,8 @@ export async function generatePaymentReceiptPdf({
   try {
     const stamp = await getStampDataUri()
     if (stamp) {
-      const stampW = 30, stampH = stampW / 1.5
-      doc.addImage(stamp, 'PNG', MR - stampW, boxY - 16, stampW, stampH)
+      const stampW = 22, stampH = stampW * (835 / 735)
+      doc.addImage(stamp, 'PNG', MR - stampW, boxY - 20, stampW, stampH)
     }
   } catch { /* ignore stamp load failure */ }
 

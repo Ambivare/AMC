@@ -584,14 +584,16 @@
           <div style="font-size:12px;font-weight:600;color:var(--ct-accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">
             Service Checklist
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
-            <div v-for="(item, i) in SERVICE_CHECKLIST_LEFT" :key="'l'+i" style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ct-sub);border-bottom:1px solid rgba(255,255,255,0.04);">
-              <input type="checkbox" v-model="monthCompletionForm.checklist['l'+i]" style="width:15px;height:15px;flex-shrink:0;" />
-              <span>{{ item }}</span>
+          <div class="checklist-table">
+            <div class="checklist-header">
+              <span class="cl-particulars">Particulars</span>
+              <span class="cl-status">Status</span>
+              <span class="cl-remarks">Remarks</span>
             </div>
-            <div v-for="(item, i) in SERVICE_CHECKLIST_RIGHT" :key="'r'+i" style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ct-sub);border-bottom:1px solid rgba(255,255,255,0.04);">
-              <input type="checkbox" v-model="monthCompletionForm.checklist['r'+i]" style="width:15px;height:15px;flex-shrink:0;" />
-              <span>{{ item }}</span>
+            <div v-for="(item, i) in ALL_CHECKLIST_ITEMS" :key="item.key" class="checklist-row">
+              <span class="cl-particulars">{{ item.label }}</span>
+              <input type="checkbox" v-model="monthCompletionForm.checklist[item.key]" class="cl-status" />
+              <input v-model="monthCompletionForm.checklistRemarks[item.key]" class="input cl-remarks" placeholder="Remarks (optional)" />
             </div>
           </div>
         </div>
@@ -641,6 +643,19 @@
             <button v-if="monthCompletionForm.signatureImage" type="button" class="btn-danger btn-sm" @click="monthCompletionForm.signatureImage = ''">Remove</button>
           </div>
           <img v-if="monthCompletionForm.signatureImage" :src="monthCompletionForm.signatureImage" style="margin-top:8px;max-height:80px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);display:block;" />
+        </div>
+
+        <!-- Photo of signing person (printed like a passport photo beside the signature) -->
+        <div class="form-group form-full" style="margin-top:4px;">
+          <label class="label" style="margin-bottom:6px;">Photo of Signing Person <span style="font-size:10px;color:var(--ct-muted);font-weight:400;">(optional — printed beside the customer signature, like a passport photo)</span></label>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="btn-secondary btn-sm" @click="captureMonthPersonPhoto">
+              <CameraIcon :size="13" /> Take Photo
+            </button>
+            <span v-if="monthCompletionForm.personPhoto" style="font-size:11px;color:var(--ct-green);">✓ Photo captured</span>
+            <button v-if="monthCompletionForm.personPhoto" type="button" class="btn-danger btn-sm" @click="monthCompletionForm.personPhoto = ''">Remove</button>
+          </div>
+          <img v-if="monthCompletionForm.personPhoto" :src="monthCompletionForm.personPhoto" style="margin-top:8px;height:100px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);display:block;" />
         </div>
       </div>
 
@@ -886,7 +901,8 @@ import { ref, computed, watch } from 'vue'
 import {
   ClipboardList, Plus, Search, Pencil, Trash2, CheckCircle,
   ChevronDown, ChevronRight, Shield, FileText, FileDown, FolderOpen,
-  Save, Upload, CalendarCheck, Eye, ClipboardCheck, MessageCircle
+  Save, Upload, CalendarCheck, Eye, ClipboardCheck, MessageCircle,
+  Camera as CameraIcon
 } from 'lucide-vue-next'
 import DataTable from '@/components/ui/DataTable.vue'
 import AppModal from '@/components/ui/AppModal.vue'
@@ -904,7 +920,7 @@ import { useExport } from '@/composables/useExport'
 import { triggerDownload, convertHtmlToPdf } from '@/composables/usePdfApiService'
 import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
 import { notifyWorker } from '@/utils/notifyWorker'
-import { SERVICE_CHECKLIST_LEFT, SERVICE_CHECKLIST_RIGHT, defaultServiceChecklist, generateServiceReportPdf } from '@/utils/serviceReport'
+import { SERVICE_CHECKLIST_LEFT, SERVICE_CHECKLIST_RIGHT, defaultServiceChecklist, defaultServiceChecklistRemarks, generateServiceReportPdf } from '@/utils/serviceReport'
 
 const ui = useUIStore()
 const activity = useActivityStore()
@@ -914,6 +930,11 @@ const { showExportDialog, dialogVisible: expDlgVisible, selectedPeriod: expPerio
 const isTech       = computed(() => auth.role === 'technician')
 const isAdmin      = computed(() => auth.role === 'admin')
 const isReception  = computed(() => auth.role === 'reception')
+
+const ALL_CHECKLIST_ITEMS = [
+  ...SERVICE_CHECKLIST_LEFT.map((label, i) => ({ key: `l${i}`, label })),
+  ...SERVICE_CHECKLIST_RIGHT.map((label, i) => ({ key: `r${i}`, label })),
+]
 
 function getProjectName(projectId) {
   if (!projectId) return null
@@ -1167,7 +1188,9 @@ const monthCompletionEmptyForm = () => ({
   signature: '',
   signatureImage: '',
   checklist: defaultServiceChecklist(),
+  checklistRemarks: defaultServiceChecklistRemarks(),
   technicianSignature: '',
+  personPhoto: '',
 })
 const monthCompletionForm = ref(monthCompletionEmptyForm())
 
@@ -1364,6 +1387,21 @@ function handleMonthSigImageUpload(e) {
   e.target.value = ''
 }
 
+async function captureMonthPersonPhoto() {
+  try {
+    const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+    const photo = await Camera.getPhoto({
+      quality: 70,
+      resultType: CameraResultType.DataUrl,
+      source: CameraSource.Camera,
+      saveToGallery: false,
+    })
+    monthCompletionForm.value.personPhoto = photo.dataUrl
+  } catch (e) {
+    if (e?.message && !/cancel/i.test(e.message)) ui.error('Could not capture photo.')
+  }
+}
+
 async function saveMonthCompletion() {
   const form = monthCompletionForm.value
   const contract = monthCompletionContract.value
@@ -1392,7 +1430,9 @@ async function saveMonthCompletion() {
       signature: form.signature,
       signatureImage: form.signatureImage || '',
       checklist: form.checklist,
+      checklistRemarks: form.checklistRemarks || {},
       technicianSignature: form.technicianSignature || '',
+      personPhoto: form.personPhoto || '',
       loggedAt: completedAt,
       completedAt,
       completedBy: auth.user?.fullName || auth.user?.username || '',
@@ -1431,11 +1471,13 @@ async function generateAmcReceipt(log) {
     reportNo: (log.contractNumber || '') + (log.monthKey ? '/' + log.monthKey : ''),
     date: log.date,
     checklist: log.checklist || defaultServiceChecklist(),
+    checklistRemarks: log.checklistRemarks || defaultServiceChecklistRemarks(),
     remarks: log.remarks,
     technicianName: log.technician || log.technicianName || '',
     technicianSignature: log.technicianSignature || '',
     customerName: log.signatoryName || '',
     customerSignature: sigSrc,
+    personPhoto: log.personPhoto || '',
   }, ui)
   return true
 }
@@ -1671,5 +1713,27 @@ function triggerExport(type) {
   .amc-contract-header { flex-wrap: wrap; }
   .amc-contract-header .contract-dates { display: none; }
   .amc-contract-header .contract-info { min-width: 0; max-width: calc(100% - 80px); }
+}
+
+.checklist-table { border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+.checklist-header, .checklist-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; }
+.checklist-header {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  color: #64748b; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.checklist-row { font-size: 12.5px; color: var(--ct-sub); border-bottom: 1px solid rgba(255,255,255,0.04); }
+.checklist-row:last-child { border-bottom: none; }
+.cl-particulars { flex: 1; min-width: 0; }
+.cl-status { width: 16px; height: 16px; flex-shrink: 0; }
+.cl-remarks { width: 220px; flex-shrink: 0; font-size: 12px !important; padding: 6px 10px !important; }
+[data-theme="light"] .checklist-table { border-color: #e2e8f0; }
+[data-theme="light"] .checklist-header { border-bottom-color: #e2e8f0; }
+[data-theme="light"] .checklist-row { border-bottom-color: #f1f5f9; }
+
+@media (max-width: 700px) {
+  .checklist-header { display: none; }
+  .checklist-row { flex-wrap: wrap; }
+  .cl-particulars { width: 100%; flex: none; }
+  .cl-remarks { width: 100%; }
 }
 </style>
