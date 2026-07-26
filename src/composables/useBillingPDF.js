@@ -2,7 +2,7 @@ import { getAll } from '@/firebase/firestore'
 import { Collections } from '@/firebase/collections'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { getLogoDataUri } from '@/utils/pdfLogo'
+import { getLogoDataUri, getSignatureDataUri, getStampDataUri } from '@/utils/pdfLogo'
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
@@ -91,20 +91,21 @@ function tsMs(ts) {
 
 async function loadConfig() {
   if (cachedConfig) return cachedConfig
+  const [signatureUrl, stampUrl] = await Promise.all([getSignatureDataUri(), getStampDataUri()])
   try {
     const configs = await getAll(Collections.CONFIGURATIONS)
     if (configs.length) {
       // Always use the most recently saved config doc to handle duplicate docs gracefully
       const latest = configs.sort((a, b) => tsMs(b.updatedAt) - tsMs(a.updatedAt))[0]
       const logoFallback = latest.company?.logoUrl || await getLogoDataUri()
-      cachedConfig = { ...latest, company: { ...(latest.company || {}), logoUrl: logoFallback } }
+      cachedConfig = { ...latest, company: { ...(latest.company || {}), logoUrl: logoFallback, signatureUrl, stampUrl } }
       return cachedConfig
     }
   } catch (e) {
     console.error('[BillingPDF] Failed to load config:', e)
   }
   const logoFallback = await getLogoDataUri()
-  return { company: { logoUrl: logoFallback } }
+  return { company: { logoUrl: logoFallback, signatureUrl, stampUrl } }
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -439,10 +440,11 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; }
   .doc-page { width: 210mm; min-height: 297mm; padding: 12mm 14mm; }
   .box { border: 1.5px solid #000; }
-  .co-hdr { display: flex; align-items: center; gap: 12px; padding: 8px 12px 2px; }
+  .co-hdr { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px 2px; }
+  .co-hdr-left { display: flex; align-items: center; gap: 12px; }
   .co-hdr img { height: 40px; width: 40px; object-fit: contain; flex-shrink: 0; }
   .co-name { font-size: 25px; font-weight: 800; color: #1d4ed8; }
-  .co-addr { font-size: 10.5px; font-weight: 700; color: #c2410c; padding: 0 12px 6px; }
+  .co-contact { text-align: right; font-size: 10px; font-weight: 700; color: #c2410c; line-height: 1.5; }
   .title-bar { text-align: center; font-weight: 700; font-size: 14px; padding: 5px; border-top: 1px solid #000; letter-spacing: .5px; }
   .info-grid { display: flex; border-top: 1px solid #000; }
   .info-left, .info-right { flex: 1; padding: 7px 12px; font-size: 12px; line-height: 1.6; }
@@ -454,7 +456,13 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   table.items { width: 100%; border-collapse: collapse; border-top: 1px solid #000; }
   table.items th { border: 1px solid #000; padding: 6px 8px; font-size: 11.5px; font-weight: 700; text-align: center; }
   .amount-words { border-top: 1px solid #000; padding: 8px 12px; font-weight: 700; font-size: 12.5px; }
-  .footer-sig { padding: 34px 12px 12px; font-weight: 700; color: #1d4ed8; border-top: 1px solid #000; font-size: 13px; }
+  .footer-sig { display: flex; justify-content: space-between; align-items: flex-end; padding: 10px 12px 12px; border-top: 1px solid #000; }
+  .footer-sig-left { display: flex; align-items: center; gap: 10px; }
+  .footer-sig-left img { height: 32px; object-fit: contain; }
+  .footer-sig-name { font-weight: 700; color: #1d4ed8; font-size: 13px; }
+  .footer-stamp img { height: 46px; object-fit: contain; opacity: .9; }
+  .footer-website { text-align: center; font-size: 10px; padding: 4px 12px 8px; border-top: 1px solid #000; }
+  .footer-website a { color: #1d4ed8; text-decoration: none; font-weight: 700; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
@@ -462,10 +470,15 @@ function buildQuotationStyleHtml(row, templateKey, company) {
 <div class="doc-page">
   <div class="box">
     <div class="co-hdr">
-      ${company.logoUrl ? `<img src="${company.logoUrl}" alt="Logo">` : ''}
-      <div class="co-name">${company.name || ''}</div>
+      <div class="co-hdr-left">
+        ${company.logoUrl ? `<img src="${company.logoUrl}" alt="Logo">` : ''}
+        <div class="co-name">${company.name || ''}</div>
+      </div>
+      <div class="co-contact">
+        ${addr}<br>
+        Mob: ${company.phone || ''} &nbsp;|&nbsp; info@tabelevators.in
+      </div>
     </div>
-    <div class="co-addr">${addr}</div>
     <div class="title-bar">${docTitle}</div>
     <div class="info-grid">
       <div class="info-left">
@@ -501,7 +514,14 @@ function buildQuotationStyleHtml(row, templateKey, company) {
     </table>
     <div class="amount-words">${numberToWords(grandTotal).toUpperCase()}</div>
     ${row.notes ? `<div style="padding:8px 12px;border-top:1px solid #000;font-size:11.5px;">${row.notes}</div>` : ''}
-    <div class="footer-sig">${company.name || ''}</div>
+    <div class="footer-sig">
+      <div class="footer-sig-left">
+        ${company.signatureUrl ? `<img src="${company.signatureUrl}" alt="Signature">` : ''}
+        <div class="footer-sig-name">${company.name || ''}</div>
+      </div>
+      <div class="footer-stamp">${company.stampUrl ? `<img src="${company.stampUrl}" alt="Stamp">` : ''}</div>
+    </div>
+    <div class="footer-website"><a href="https://www.tabelevators.in">www.tabelevators.in</a></div>
   </div>
 </div>
 </body>
@@ -567,7 +587,12 @@ function buildFallbackHtml(row, templateKey, company) {
   .totals td { padding: 5px 10px; border-bottom: 1px solid #fecaca; }
   .grand-total td { background: #dc2626; color: #fff; font-weight: 700; font-size: 14px; }
   .notes { margin-top: 12px; padding: 10px 14px; background: #fef2f2; border-radius: 6px; font-size: 12px; color: #64748b; }
-  .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #fecaca; display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; }
+  .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #fecaca; display: flex; justify-content: space-between; align-items: flex-end; font-size: 11px; color: #94a3b8; }
+  .footer-left { display: flex; align-items: center; gap: 10px; }
+  .footer-left img.sig { height: 30px; object-fit: contain; }
+  .footer-stamp img { height: 42px; object-fit: contain; opacity: .9; }
+  .footer-website { text-align: center; font-size: 10px; margin-top: 10px; }
+  .footer-website a { color: #dc2626; text-decoration: none; font-weight: 700; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
@@ -578,11 +603,11 @@ function buildFallbackHtml(row, templateKey, company) {
   <div>
     ${company.logoUrl ? '<img src="' + company.logoUrl + '" alt="" style="max-height:44px;max-width:130px;object-fit:contain;display:block;">' : ''}
     <div class="company-name">${company.name || ''}</div>
-    <div class="company-info">${addr}</div>
     ${company.gst ? `<div class="company-info">GST: ${company.gst}</div>` : ''}
-    ${company.phone ? `<div class="company-info">Ph: ${company.phone}${company.email ? ' | ' + company.email : ''}</div>` : ''}
   </div>
-  <div>
+  <div style="text-align:right;">
+    <div class="company-info">${addr}</div>
+    <div class="company-info">Mob: ${company.phone || ''} | info@tabelevators.in</div>
     <div class="doc-title">${docTitle}</div>
     <div class="doc-meta">No: ${docNumber}</div>
     <div class="doc-meta">Date: ${formatDate(row.date || row.createdAt)}</div>
@@ -606,9 +631,13 @@ ${!isBOM && (row.numberOfLifts || row.liftDescription) ? `<div style="display:fl
 <table class="totals">${totalsHtml}</table>
 ${row.notes ? `<div class="notes"><strong>Notes:</strong> ${row.notes}</div>` : ''}
 <div class="footer">
-  <div>For ${company.name || ''}<br><br><span style="border-top:1px solid #dc2626;padding-top:4px;">Authorised Signatory</span></div>
-  <div style="text-align:right;">${company.phone || ''}${company.phone && company.email ? ' | ' : ''}${company.email || ''}</div>
+  <div class="footer-left">
+    ${company.signatureUrl ? `<img class="sig" src="${company.signatureUrl}" alt="Signature">` : ''}
+    <div>For ${company.name || ''}<br><span style="border-top:1px solid #dc2626;padding-top:4px;display:inline-block;">Authorised Signatory</span></div>
+  </div>
+  <div class="footer-stamp">${company.stampUrl ? `<img src="${company.stampUrl}" alt="Stamp">` : ''}</div>
 </div>
+<div class="footer-website"><a href="https://www.tabelevators.in">www.tabelevators.in</a></div>
 </div>
 </div>
 </body>
