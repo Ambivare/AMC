@@ -415,7 +415,9 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   const docTotal = row.total || 0
   const lifts = row.numberOfLifts ? (Number(row.numberOfLifts) || 1) : 1
   const grandTotal = lifts > 1 ? (Number(row.grandTotal) || docTotal * lifts) : docTotal
-  const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
+  const addrLine1 = company.addressLine1 || company.address || ''
+  const addrLine2 = company.addressLine2 || ''
+  const cityLine = [company.city, company.state, company.pincode].filter(Boolean).join(', ')
 
   return `<!DOCTYPE html>
 <html>
@@ -430,8 +432,9 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   .co-hdr { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px 2px; }
   .co-hdr-left { display: flex; align-items: center; gap: 12px; }
   .co-hdr img { height: 40px; width: 40px; object-fit: contain; flex-shrink: 0; }
-  .co-name { font-size: 25px; font-weight: 800; color: #1d4ed8; }
+  .co-name { font-size: 19px; font-weight: 800; color: #1d4ed8; white-space: nowrap; }
   .co-contact { text-align: right; font-size: 10px; font-weight: 700; color: #c2410c; line-height: 1.5; }
+  .co-contact .co-contact-blue { color: #1d4ed8; }
   .title-bar { text-align: center; font-weight: 700; font-size: 14px; padding: 5px; border-top: 1px solid #000; letter-spacing: .5px; }
   .info-grid { display: flex; border-top: 1px solid #000; }
   .info-left, .info-right { flex: 1; padding: 7px 12px; font-size: 12px; line-height: 1.6; }
@@ -445,9 +448,9 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   .amount-words { border-top: 1px solid #000; padding: 8px 12px; font-weight: 700; font-size: 12.5px; }
   .footer-sig { display: flex; justify-content: space-between; align-items: flex-end; padding: 10px 12px 12px; border-top: 1px solid #000; }
   .footer-sig-left { display: flex; align-items: center; gap: 10px; }
-  .footer-sig-left img { height: 32px; object-fit: contain; }
+  .footer-sig-left img { height: 38px; object-fit: contain; }
   .footer-sig-name { font-weight: 700; color: #1d4ed8; font-size: 13px; }
-  .footer-stamp img { height: 68px; object-fit: contain; opacity: .9; }
+  .footer-stamp img { height: 76px; object-fit: contain; opacity: .9; }
   .footer-website { text-align: center; font-size: 10px; padding: 4px 12px 8px; border-top: 1px solid #000; }
   .footer-website a { color: #1d4ed8; text-decoration: none; font-weight: 700; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -462,8 +465,10 @@ function buildQuotationStyleHtml(row, templateKey, company) {
         <div class="co-name">${company.name || ''}</div>
       </div>
       <div class="co-contact">
-        ${addr}<br>
-        Mob: ${company.phone || ''} &nbsp;|&nbsp; info@tabelevators.in
+        ${addrLine1 ? `${addrLine1}<br>` : ''}
+        ${addrLine2 ? `${addrLine2}<br>` : ''}
+        ${cityLine ? `${cityLine}<br>` : ''}
+        <span class="co-contact-blue">Mob: ${company.phone || ''} &nbsp;|&nbsp; info@tabelevators.in</span>
       </div>
     </div>
     <div class="title-bar">${docTitle}</div>
@@ -527,7 +532,9 @@ function buildFallbackHtml(row, templateKey, company) {
   const docTotal = isBOM ? getBOMTotal(row) : (row.total || 0)
   const fbLifts = (!isBOM && row.numberOfLifts) ? (Number(row.numberOfLifts) || 1) : 1
   const fbGrandTotal = fbLifts > 1 ? (Number(row.grandTotal) || docTotal * fbLifts) : docTotal
-  const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
+  const addrLine1 = company.addressLine1 || company.address || ''
+  const addrLine2 = company.addressLine2 || ''
+  const cityLine = [company.city, company.state, company.pincode].filter(Boolean).join(', ')
 
   const itemCols = isBOM
     ? `<th>#</th><th>Part Name</th><th>Description</th><th>Part No.</th><th style="text-align:center;">Qty</th><th>Unit</th><th style="text-align:right;">Unit Cost</th><th style="text-align:right;">Total</th>`
@@ -558,8 +565,9 @@ function buildFallbackHtml(row, templateKey, company) {
   .doc-page { width: 210mm; min-height: 297mm; margin: 0 auto; display: flex; flex-direction: column; }
   .doc-body { flex: 1; padding: 14px 20mm; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #dc2626; padding-bottom: 14px; margin-bottom: 20px; }
-  .company-name { font-size: 20px; font-weight: 700; color: #b91c1c; margin-top: 8px; }
+  .company-name { font-size: 16px; font-weight: 700; color: #b91c1c; margin-top: 8px; white-space: nowrap; }
   .company-info { font-size: 11px; color: #64748b; margin-top: 3px; }
+  .company-info-blue { color: #1d4ed8; font-weight: 600; }
   .doc-title { font-size: 26px; font-weight: 700; color: #dc2626; text-align: right; }
   .doc-meta { font-size: 12px; color: #64748b; text-align: right; margin-top: 3px; }
   .bill-box { padding: 12px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; margin-bottom: 20px; display: inline-block; min-width: 260px; }
@@ -576,8 +584,8 @@ function buildFallbackHtml(row, templateKey, company) {
   .notes { margin-top: 12px; padding: 10px 14px; background: #fef2f2; border-radius: 6px; font-size: 12px; color: #64748b; }
   .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #fecaca; display: flex; justify-content: space-between; align-items: flex-end; font-size: 11px; color: #94a3b8; }
   .footer-left { display: flex; align-items: center; gap: 10px; }
-  .footer-left img.sig { height: 30px; object-fit: contain; }
-  .footer-stamp img { height: 62px; object-fit: contain; opacity: .9; }
+  .footer-left img.sig { height: 36px; object-fit: contain; }
+  .footer-stamp img { height: 70px; object-fit: contain; opacity: .9; }
   .footer-website { text-align: center; font-size: 10px; margin-top: 10px; }
   .footer-website a { color: #dc2626; text-decoration: none; font-weight: 700; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -593,8 +601,10 @@ function buildFallbackHtml(row, templateKey, company) {
     ${company.gst ? `<div class="company-info">GST: ${company.gst}</div>` : ''}
   </div>
   <div style="text-align:right;">
-    <div class="company-info">${addr}</div>
-    <div class="company-info">Mob: ${company.phone || ''} | info@tabelevators.in</div>
+    ${addrLine1 ? `<div class="company-info">${addrLine1}</div>` : ''}
+    ${addrLine2 ? `<div class="company-info">${addrLine2}</div>` : ''}
+    ${cityLine ? `<div class="company-info">${cityLine}</div>` : ''}
+    <div class="company-info company-info-blue">Mob: ${company.phone || ''} | info@tabelevators.in</div>
     <div class="doc-title">${docTitle}</div>
     <div class="doc-meta">No: ${docNumber}</div>
     <div class="doc-meta">Date: ${formatDate(row.date || row.createdAt)}</div>

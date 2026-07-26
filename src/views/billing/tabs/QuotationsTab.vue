@@ -469,7 +469,6 @@ import DataTable from '@/components/ui/DataTable.vue'
 import EmailModal from '@/components/ui/EmailModal.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
-import { useAuthStore } from '@/stores/auth'
 import { Collections } from '@/firebase/collections'
 import { db } from '@/firebase/config'
 import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore'
@@ -479,7 +478,6 @@ import { generateOrGetPdf, triggerDownload } from '@/composables/usePdfApiServic
 
 const emit = defineEmits(['convert-to-pi'])
 const ui = useUIStore()
-const auth = useAuthStore()
 const { items, loading, add, edit, del } = useCollection(Collections.QUOTATIONS)
 
 function tsMs(ts) {
@@ -676,11 +674,6 @@ function getFinancialYear(dateStr) {
     : `${String(year - 1).slice(2)}-${String(year).slice(2)}`
 }
 
-function getUserInitials(name) {
-  if (!name) return ''
-  return name.trim().split(/\s+/).slice(0, 2).map(w => (w[0] || '').toUpperCase()).join('')
-}
-
 function generateQtnNumber() {
   const project = allProjects.value.find(p => p.id === form.value.projectId)
   const contractNo = project?.fileNumber || project?.contractNo || project?.contractNumber || ''
@@ -695,8 +688,7 @@ function generateQtnNumber() {
       datePart = `${dd}${mm}${d.getFullYear()}`
     }
   }
-  const initials = getUserInitials(auth.user?.fullName || auth.user?.name || auth.user?.username || '')
-  const parts = [contractNo, projectName, 'MQTN', fy, datePart, initials].filter(Boolean)
+  const parts = [contractNo, projectName, 'MQTN', fy, datePart, 'TE'].filter(Boolean)
   form.value.docNumber = parts.join('/')
 }
 

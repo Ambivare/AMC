@@ -17,7 +17,7 @@ const API_KEY  = 'Ambivare@9822091922'
 
 // Bump this when rendering logic changes significantly (e.g. new placeholders added).
 // Any cached PDFs from a previous render version are discarded.
-const RENDER_VERSION = 5
+const RENDER_VERSION = 6
 
 // ── Timestamp normalisation ──────────────────────────────────────────────────
 

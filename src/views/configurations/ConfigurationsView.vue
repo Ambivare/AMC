@@ -89,9 +89,13 @@
           <label class="label">Sector / Area <span style="font-weight:400;color:var(--ct-muted);">(optional)</span></label>
           <input v-model="config.company.sector" class="input" placeholder="e.g. Sector 15, Andheri West" />
         </div>
-        <div class="form-group form-full">
-          <label class="label">Address</label>
-          <textarea v-model="config.company.address" class="input" rows="2" placeholder="Full company address…" style="resize:vertical;"></textarea>
+        <div class="form-group">
+          <label class="label">Address Line 1</label>
+          <input v-model="config.company.addressLine1" class="input" placeholder="e.g. S.No. 30/14, Uniti Industries" />
+        </div>
+        <div class="form-group">
+          <label class="label">Address Line 2</label>
+          <input v-model="config.company.addressLine2" class="input" placeholder="e.g. Behind Panchamukhi Hanuman Mandir, Narhe" />
         </div>
         <div class="form-group form-full">
           <label class="label">Registered Address <span style="font-weight:400;color:var(--ct-muted);">(if different from above — used in Tax Invoice)</span></label>
@@ -892,6 +896,8 @@ const config = ref({
     plotNo: '',
     sector: '',
     address: '',
+    addressLine1: '',
+    addressLine2: '',
     regAddress: '',
     city: '',
     state: '',
@@ -937,6 +943,11 @@ onMounted(async () => {
       configDocId = sorted[0].id
       const d = sorted[0]
       if (d.company) config.value.company = { ...config.value.company, ...d.company }
+      // One-time migration: older configs only had a single combined "address"
+      // field — surface it as Line 1 so existing data isn't hidden by the new split fields.
+      if (!config.value.company.addressLine1 && config.value.company.address) {
+        config.value.company.addressLine1 = config.value.company.address
+      }
       if (d.templates) config.value.templates = { ...config.value.templates, ...d.templates }
       if (d.enabledTabs) config.value.enabledTabs = { ...config.value.enabledTabs, ...d.enabledTabs }
       if (d.contractHtml !== undefined) config.value.contractHtml = d.contractHtml
@@ -952,6 +963,10 @@ onMounted(async () => {
 async function saveAll() {
   saving.value = true
   try {
+    // Keep the legacy combined "address" field in sync from the two line
+    // fields, since other PDF templates (AMC Contract, Installation
+    // Proposal, etc.) still read the single combined value.
+    config.value.company.address = [config.value.company.addressLine1, config.value.company.addressLine2].filter(Boolean).join(', ')
     const data = {
       company: config.value.company,
       templates: config.value.templates,
