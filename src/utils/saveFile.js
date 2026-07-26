@@ -1,4 +1,10 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
+
+// Native plugin (android/app/src/main/java/com/sk/elevators/SaveToDownloadsPlugin.java)
+// writes a file directly into the device's public Downloads folder via
+// MediaStore (API 29+) or a permissioned legacy file write (API 23-28) —
+// no Share sheet involved.
+const SaveToDownloadsNative = registerPlugin('SaveToDownloads')
 
 // Chunk-based base64 to avoid call stack overflow on large PDFs
 function toBase64(data) {
@@ -37,6 +43,42 @@ async function writeToDevice(filename, base64, ui) {
     if (/cancel/i.test(e?.message || '')) return
     console.error('[saveFile] Save/share failed:', e)
     ui?.error('Could not save file: ' + (e?.message || 'Unknown error'))
+  }
+}
+
+// Writes bytes directly into the device's public Downloads folder (native),
+// or triggers a normal browser download (web) — no Share sheet involved.
+export async function saveBytesToDownloads(filename, base64, mimeType, ui) {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await SaveToDownloadsNative.save({ data: base64, filename, mimeType })
+      ui?.success?.('Saved to Downloads: ' + filename)
+    } catch (e) {
+      if (/cancel/i.test(e?.message || '')) return
+      console.error('[saveFile] Save to Downloads failed:', e)
+      ui?.error?.('Could not save to Downloads: ' + (e?.message || 'Unknown error'))
+    }
+    return
+  }
+  const a = document.createElement('a')
+  a.href = `data:${mimeType};base64,${base64}`
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  setTimeout(() => document.body.removeChild(a), 200)
+}
+
+/**
+ * Save a jsPDF document directly to the Downloads folder (native) or trigger
+ * a normal browser download (web) — bypasses the Share sheet.
+ */
+export async function savePDFToDownloads(doc, filename, ui) {
+  try {
+    const buf = doc.output('arraybuffer')
+    await saveBytesToDownloads(filename, toBase64(buf), 'application/pdf', ui)
+  } catch (e) {
+    console.error('[savePDFToDownloads]', e)
+    ui?.error?.('PDF save failed: ' + (e?.message || e))
   }
 }
 

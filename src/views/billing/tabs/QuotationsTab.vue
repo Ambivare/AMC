@@ -53,6 +53,10 @@
               <Loader2 v-if="pdfLoading[row.id]" :size="12" class="spin" />
               <Download v-else :size="12" />
             </button>
+            <button class="btn-secondary btn-sm" :disabled="pdfSavingToDownloads[row.id]" @click="downloadPDFToDownloads(row)" title="Save PDF to Downloads folder">
+              <Loader2 v-if="pdfSavingToDownloads[row.id]" :size="12" class="spin" />
+              <FileDown v-else :size="12" />
+            </button>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(row)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
             <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(row)" title="Send Email"><Mail :size="12" /></button>
             <button class="btn-warning btn-sm" @click="convertToPI(row)" title="Convert to Proforma Invoice" :disabled="row.status === 'converted'">
@@ -453,8 +457,26 @@
         </div>
       </template>
       <template #footer>
-        <button class="btn-secondary" @click="showViewModal = false">Close</button>
-        <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
+          <button class="btn-secondary" @click="showViewModal = false">Close</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+            <button class="btn-success btn-sm" :disabled="pdfLoading[viewTarget?.id]" @click="downloadPDF(viewTarget)" title="PDF">
+              <Loader2 v-if="pdfLoading[viewTarget?.id]" :size="12" class="spin" />
+              <Download v-else :size="12" />
+            </button>
+            <button class="btn-secondary btn-sm" :disabled="pdfSavingToDownloads[viewTarget?.id]" @click="downloadPDFToDownloads(viewTarget)" title="Save PDF to Downloads folder">
+              <Loader2 v-if="pdfSavingToDownloads[viewTarget?.id]" :size="12" class="spin" />
+              <FileDown v-else :size="12" />
+            </button>
+            <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
+            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(viewTarget)" title="Send Email"><Mail :size="12" /></button>
+            <button class="btn-warning btn-sm" @click="convertToPI(viewTarget)" title="Convert to Proforma Invoice" :disabled="viewTarget?.status === 'converted'">
+              <ArrowRight :size="12" />
+            </button>
+            <button class="btn-danger btn-sm" @click="showViewModal = false; confirmDel(viewTarget)"><Trash2 :size="12" /></button>
+            <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
+          </div>
+        </div>
       </template>
     </AppModal>
   </div>
@@ -462,7 +484,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Plus, Search, Pencil, Trash2, Save, Download, ArrowRight, FileSpreadsheet, FolderOpen, Layers, Tag, Loader2, Mail, Wand2 } from 'lucide-vue-next'
+import { Plus, Search, Pencil, Trash2, Save, Download, FileDown, ArrowRight, FileSpreadsheet, FolderOpen, Layers, Tag, Loader2, Mail, Wand2 } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import DataTable from '@/components/ui/DataTable.vue'
@@ -474,7 +496,7 @@ import { db } from '@/firebase/config'
 import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore'
 import { downloadExcel } from '@/composables/useBillingExcel'
 import { loadBillingConfig, renderBillingHtml, renderQuotationWithBomHtml, getDocMeta } from '@/composables/useBillingPDF'
-import { generateOrGetPdf, triggerDownload } from '@/composables/usePdfApiService'
+import { generateOrGetPdf, triggerDownload, downloadPdfToDownloads } from '@/composables/usePdfApiService'
 
 const emit = defineEmits(['convert-to-pi'])
 const ui = useUIStore()
@@ -615,6 +637,7 @@ function openView(row) { viewTarget.value = row; showViewModal.value = true }
 const editing = ref(null)
 const saving = ref(false)
 const pdfLoading = ref({})
+const pdfSavingToDownloads = ref({})
 
 const defaultForm = () => {
   const today = new Date()
@@ -796,43 +819,61 @@ async function downloadRowExcel(row) {
   catch (e) { ui.error('Failed to generate Excel: ' + (e?.message || e)) }
 }
 
-async function downloadPDF(row) {
-  if (pdfLoading.value[row.id]) return
-  pdfLoading.value[row.id] = true
+async function resolveQuotationPdfUrl(row) {
   const resolved = row.projectName || !row.projectId ? row
     : { ...row, projectName: allProjects.value.find(p => p.id === row.projectId)?.projectName || '' }
-  try {
-    const config = await loadBillingConfig()
-    let html
-    let bomRow = null
-    if (resolved.linkedBomId) {
-      const rawBom = allBoms.value.find(b => b.id === resolved.linkedBomId)
-      if (rawBom) {
-        bomRow = {
-          ...rawBom,
-          clientName: rawBom.clientName || resolved.clientName || '',
-          clientPhone: rawBom.clientPhone || resolved.clientPhone || '',
-          clientAddress: rawBom.clientAddress || resolved.clientAddress || '',
-          projectName: rawBom.projectName || resolved.projectName || '',
-        }
-        html = renderQuotationWithBomHtml(resolved, bomRow, config)
-      } else {
-        html = renderBillingHtml(resolved, 'quotation', config)
+  const config = await loadBillingConfig()
+  let html
+  let bomRow = null
+  if (resolved.linkedBomId) {
+    const rawBom = allBoms.value.find(b => b.id === resolved.linkedBomId)
+    if (rawBom) {
+      bomRow = {
+        ...rawBom,
+        clientName: rawBom.clientName || resolved.clientName || '',
+        clientPhone: rawBom.clientPhone || resolved.clientPhone || '',
+        clientAddress: rawBom.clientAddress || resolved.clientAddress || '',
+        projectName: rawBom.projectName || resolved.projectName || '',
       }
+      html = renderQuotationWithBomHtml(resolved, bomRow, config)
     } else {
       html = renderBillingHtml(resolved, 'quotation', config)
     }
-    const { filename } = getDocMeta(resolved, 'quotation')
-    const effectiveConfigTs = bomRow?.updatedAt
-      ? (tsMs(bomRow.updatedAt) > tsMs(config.updatedAt) ? bomRow.updatedAt : config.updatedAt)
-      : config.updatedAt
-    const url = await generateOrGetPdf(resolved, 'quotation', html, filename, effectiveConfigTs)
+  } else {
+    html = renderBillingHtml(resolved, 'quotation', config)
+  }
+  const { filename } = getDocMeta(resolved, 'quotation')
+  const effectiveConfigTs = bomRow?.updatedAt
+    ? (tsMs(bomRow.updatedAt) > tsMs(config.updatedAt) ? bomRow.updatedAt : config.updatedAt)
+    : config.updatedAt
+  const url = await generateOrGetPdf(resolved, 'quotation', html, filename, effectiveConfigTs)
+  return { url, filename }
+}
+
+async function downloadPDF(row) {
+  if (pdfLoading.value[row.id]) return
+  pdfLoading.value[row.id] = true
+  try {
+    const { url, filename } = await resolveQuotationPdfUrl(row)
     await triggerDownload(url, filename)
     ui.success('PDF ready — opening download.')
   } catch (e) {
     ui.error(e?.message || 'PDF generation failed. Please try again.')
   } finally {
     pdfLoading.value[row.id] = false
+  }
+}
+
+async function downloadPDFToDownloads(row) {
+  if (pdfSavingToDownloads.value[row.id]) return
+  pdfSavingToDownloads.value[row.id] = true
+  try {
+    const { url, filename } = await resolveQuotationPdfUrl(row)
+    await downloadPdfToDownloads(url, filename, ui)
+  } catch (e) {
+    ui.error(e?.message || 'PDF generation failed. Please try again.')
+  } finally {
+    pdfSavingToDownloads.value[row.id] = false
   }
 }
 
@@ -845,14 +886,12 @@ function openEmail(row) {
   showEmailModal.value = true
 }
 
-async function convertToPI(row) {
-  try {
-    await edit(row.id, { status: 'converted', updatedAt: new Date() }, { action: 'converted', module: 'quotations', tab: 'Billing', summary: `Converted Quotation ${row.docNumber} to Proforma Invoice`, details: { docNumber: row.docNumber, clientName: row.clientName, amount: row.total } })
-    ui.success('Converted to Proforma Invoice.')
-    emit('convert-to-pi', row)
-  } catch {
-    ui.error('Failed to convert quotation. Please try again.')
-  }
+function convertToPI(row) {
+  // The quotation itself is only marked "converted" once the Proforma Invoice
+  // opened below is actually saved (see ProformaInvoicesTab.vue's save()) —
+  // otherwise closing that modal without saving left the quotation stuck
+  // showing "converted" with no PI ever created.
+  emit('convert-to-pi', row)
 }
 
 </script>

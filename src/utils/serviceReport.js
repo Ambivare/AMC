@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { savePDF } from './saveFile'
+import { savePDF, savePDFToDownloads } from './saveFile'
 import { numberToWords } from '@/composables/useBillingPDF'
 import { getStampDataUri } from './pdfLogo'
 
@@ -76,6 +76,7 @@ export async function generateServiceReportPdf({
   customerName = '',
   customerSignature = '',
   personPhoto = '',
+  saveMode = 'share',
 }, ui) {
   const PW = 297, PH = 236, ML = 10, MR = 287
   const doc = new jsPDF({ unit: 'mm', format: [PW, PH], orientation: 'landscape' })
@@ -218,7 +219,11 @@ export async function generateServiceReportPdf({
 
   const safeName = (siteName || 'site').replace(/[^\w-]+/g, '_')
   const filename = `Service-Report-${safeName}-${date || ''}.pdf`
-  await savePDF(doc, filename, ui)
+  if (saveMode === 'downloads') {
+    await savePDFToDownloads(doc, filename, ui)
+  } else {
+    await savePDF(doc, filename, ui)
+  }
 }
 
 export { numberToWords }

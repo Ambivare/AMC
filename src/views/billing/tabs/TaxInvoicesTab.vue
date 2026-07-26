@@ -371,8 +371,17 @@
         </div>
       </template>
       <template #footer>
-        <button class="btn-secondary" @click="showViewModal = false">Close</button>
-        <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
+          <button class="btn-secondary" @click="showViewModal = false">Close</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+            <PDFDownloadButton v-if="viewTarget" class="btn-success btn-sm" :row="resolveRow(viewTarget)" template-key="taxInvoice" title="Download PDF"><Download :size="12" /></PDFDownloadButton>
+            <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
+            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(viewTarget)" title="Send Email"><Mail :size="12" /></button>
+            <button class="btn-warning btn-sm" @click="showViewModal = false; openPayment(viewTarget)" title="Record Payment"><CreditCard :size="12" /></button>
+            <button class="btn-danger btn-sm" @click="showViewModal = false; confirmDel(viewTarget)"><Trash2 :size="12" /></button>
+            <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
+          </div>
+        </div>
       </template>
     </AppModal>
   </div>
@@ -394,6 +403,7 @@ import { downloadExcel } from '@/composables/useBillingExcel'
 const ui = useUIStore()
 const { items, loading, add, edit, del } = useCollection(Collections.TAX_INVOICES)
 const { items: allProjects } = useCollection(Collections.PROJECTS)
+const { edit: editProforma } = useCollection(Collections.PROFORMA_INVOICES, { autoLoad: false })
 
 // ── Project Link ─────────────────────────────────────────────────────
 const billUseProject = ref(false)
@@ -548,6 +558,7 @@ function openWithData(piRow) {
     total: piRow.total || 0,
     notes: piRow.notes || '',
     sourcePI: piRow.docNumber || '',
+    piId: piRow.id || '',
   }
   showModal.value = true
 }
@@ -564,6 +575,11 @@ async function save() {
     } else {
       data.createdAt = new Date()
       await add(data, { action: 'created', module: 'taxInvoices', tab: 'Billing', summary: `Created Tax Invoice ${data.docNumber} for ${data.clientName}`, details: { docNumber: data.docNumber, clientName: data.clientName, amount: data.total } })
+      // Only mark the source PI as converted once the Tax Invoice actually exists.
+      if (data.piId) {
+        try { await editProforma(data.piId, { status: 'converted', updatedAt: new Date() }) }
+        catch (e) { console.error('[TaxInvoices] Failed to mark source PI converted:', e) }
+      }
       ui.success('Tax invoice created.')
     }
     showModal.value = false

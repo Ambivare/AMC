@@ -115,6 +115,7 @@
               <button class="btn-secondary btn-sm" @click="openEditContract(row)" title="Edit"><Pencil :size="12" /></button>
               <button class="btn-secondary btn-sm" @click="openContractPdf(row)" title="Create Contract PDF"><FilePlus2 :size="12" /></button>
               <button class="btn-success btn-sm" @click="exportContractPDF(row)" title="Export PDF"><Download :size="12" /></button>
+              <button class="btn-secondary btn-sm" @click="exportContractPDF(row, 'downloads')" title="Save PDF to Downloads folder"><FileDown :size="12" /></button>
               <button class="btn-warning btn-sm" @click="emailContract(row)" title="Email Contract" :disabled="amcEmailPdfGenerating && amcEmailTarget?.id === row.id"><Mail :size="12" /></button>
               <button class="btn-secondary btn-sm" style="color:#10b981;" @click="openPayment(row)" title="Log Payment Received"><DollarSign :size="12" /></button>
               <button class="btn-danger btn-sm" @click="confirmDeleteContract(row)" title="Delete"><Trash2 :size="12" /></button>
@@ -267,6 +268,9 @@
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
                     <button class="btn-secondary btn-sm" @click.stop="regenerateAndDownloadReceipt(lg)" title="Download Service Report">
                       <Download :size="11" /> Service Report
+                    </button>
+                    <button class="btn-secondary btn-sm" @click.stop="regenerateAndDownloadReceipt(lg, 'downloads')" title="Save Service Report to Downloads folder">
+                      <FileDown :size="11" />
                     </button>
                     <button
                       class="btn-secondary btn-sm"
@@ -428,6 +432,9 @@
               <button class="btn-secondary btn-sm" style="padding:3px 7px;flex-shrink:0;" title="Download Receipt" @click.stop="downloadPaymentReceipt(getContractById(inst.contractId), { amount: inst.paidAmount, date: inst.paidDate, method: inst.paidMethod, reference: inst.paidReference }, inst.paidHistoryIdx)">
                 <Download :size="11" />
               </button>
+              <button class="btn-secondary btn-sm" style="padding:3px 7px;flex-shrink:0;" title="Save Receipt to Downloads folder" @click.stop="downloadPaymentReceipt(getContractById(inst.contractId), { amount: inst.paidAmount, date: inst.paidDate, method: inst.paidMethod, reference: inst.paidReference }, inst.paidHistoryIdx, 'downloads')">
+                <FileDown :size="11" />
+              </button>
               <button v-if="isAdmin || isReception" class="btn-secondary btn-sm" style="padding:3px 7px;flex-shrink:0;" title="Edit payment" @click.stop="editingInstPay?.contractId === inst.contractId && editingInstPay?.origIdx === inst.paidHistoryIdx ? editingInstPay = null : openInstPayEdit(inst)">
                 <Pencil :size="11" />
               </button>
@@ -574,6 +581,9 @@
             <span>✓ {{ formatCurrency(item.paidAmount ?? item.amount) }} via {{ item.paidMethod || '—' }}<span v-if="item.paidReference"> · Ref: {{ item.paidReference }}</span></span>
             <button class="btn-secondary btn-sm" style="padding:3px 7px;flex-shrink:0;" title="Download Receipt" @click.stop="downloadPaymentReceipt(getContractById(item.contractId), { amount: item.paidAmount ?? item.amount, date: item.paidDate, method: item.paidMethod, reference: item.paidReference }, Math.max(0, item.paidHistoryIdx))">
               <Download :size="11" />
+            </button>
+            <button class="btn-secondary btn-sm" style="padding:3px 7px;flex-shrink:0;" title="Save Receipt to Downloads folder" @click.stop="downloadPaymentReceipt(getContractById(item.contractId), { amount: item.paidAmount ?? item.amount, date: item.paidDate, method: item.paidMethod, reference: item.paidReference }, Math.max(0, item.paidHistoryIdx), 'downloads')">
+              <FileDown :size="11" />
             </button>
           </div>
           <div v-else-if="item.isOverdue" style="font-size:11px;color:#f87171;padding:8px 10px;background:rgba(248,113,113,0.04);border-radius:8px;border:1px solid rgba(248,113,113,0.12);">
@@ -1101,6 +1111,9 @@
             <button class="btn-secondary btn-sm" @click="triggerDownload(h.contractPdfUrl, (contractPdfTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT-' + (idx+1) + '.pdf')">
               <Download :size="12" /> Download
             </button>
+            <button class="btn-secondary btn-sm" title="Save to Downloads folder" @click="downloadPdfToDownloads(h.contractPdfUrl, (contractPdfTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT-' + (idx+1) + '.pdf', ui)">
+              <FileDown :size="12" />
+            </button>
           </div>
         </div>
 
@@ -1116,6 +1129,9 @@
             <div style="display:flex;gap:8px;align-items:center;">
               <button class="btn-secondary btn-sm" @click="triggerDownload(contractPdfTarget.contractPdfUrl, (contractPdfTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT.pdf')">
                 <Download :size="12" /> Download
+              </button>
+              <button class="btn-secondary btn-sm" title="Save to Downloads folder" @click="downloadPdfToDownloads(contractPdfTarget.contractPdfUrl, (contractPdfTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT.pdf', ui)">
+                <FileDown :size="12" />
               </button>
               <!-- Edit toggle -->
               <div style="display:flex;align-items:center;gap:6px;">
@@ -1251,6 +1267,9 @@
                   <span style="color:#10b981;font-weight:600;font-size:13px;">Rs. {{ Number(ph.amount).toLocaleString('en-IN') }}</span>
                   <button class="btn-secondary btn-sm" @click="downloadPaymentReceipt(payTarget, ph, i)" style="padding:3px 7px;" title="Download Receipt">
                     <Download :size="11" />
+                  </button>
+                  <button class="btn-secondary btn-sm" @click="downloadPaymentReceipt(payTarget, ph, i, 'downloads')" style="padding:3px 7px;" title="Save Receipt to Downloads folder">
+                    <FileDown :size="11" />
                   </button>
                   <button v-if="isAdmin || isReception" class="btn-secondary btn-sm" @click="startEditPay(i)" style="padding:3px 7px;" title="Edit payment">
                     <Pencil :size="11" />
@@ -1495,6 +1514,14 @@
               >
                 <Download :size="12" /> PDF
               </button>
+              <button
+                class="btn-secondary btn-sm"
+                style="flex-shrink:0;"
+                title="Save historical contract PDF to Downloads folder"
+                @click="exportHistoricalPDF(viewTarget, renewal, 'downloads')"
+              >
+                <FileDown :size="12" />
+              </button>
             </div>
           </div>
         </div>
@@ -1506,8 +1533,14 @@
       <button v-if="viewTarget?.contractPdfUrl" class="btn-secondary" @click="triggerDownload(viewTarget.contractPdfUrl, (viewTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT.pdf')">
         <Download :size="14" /> Contract PDF
       </button>
+      <button v-if="viewTarget?.contractPdfUrl" class="btn-secondary" title="Save Contract PDF to Downloads folder" @click="downloadPdfToDownloads(viewTarget.contractPdfUrl, (viewTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT.pdf', ui)">
+        <FileDown :size="14" />
+      </button>
       <button v-if="viewTarget?.renewalPdfUrl" class="btn-secondary" style="color:#10b981;border-color:#10b981;" @click="triggerDownload(viewTarget.renewalPdfUrl, (viewTarget.contractNumber || 'CONTRACT') + '-AMC-RENEWAL.pdf')">
         <Download :size="14" /> Renewal PDF
+      </button>
+      <button v-if="viewTarget?.renewalPdfUrl" class="btn-secondary" style="color:#10b981;border-color:#10b981;" title="Save Renewal PDF to Downloads folder" @click="downloadPdfToDownloads(viewTarget.renewalPdfUrl, (viewTarget.contractNumber || 'CONTRACT') + '-AMC-RENEWAL.pdf', ui)">
+        <FileDown :size="14" />
       </button>
       <!-- Renew: always visible for non-tech, but disabled if contract is not expired/expiring -->
       <button
@@ -1646,6 +1679,14 @@
       >
         <Download :size="14" /> Download PDF
       </button>
+      <button
+        v-if="viewInspectionData?.receiptUrl"
+        class="btn-secondary"
+        title="Save to Downloads folder"
+        @click="downloadPdfToDownloads(viewInspectionData.receiptUrl, 'Inspection-' + viewInspectionData.monthKey + '.pdf', ui)"
+      >
+        <FileDown :size="14" />
+      </button>
       <button v-else class="btn-primary" @click="generateInspectionPdf(viewInspectionData)">
         <Download :size="14" /> Generate PDF
       </button>
@@ -1675,12 +1716,12 @@ import AmcEmailModal from '@/components/ui/AmcEmailModal.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { useActivityStore } from '@/stores/activity'
-import { savePDF } from '@/utils/saveFile'
+import { savePDF, savePDFToDownloads } from '@/utils/saveFile'
 import { useAuthStore } from '@/stores/auth'
 import { Collections } from '@/firebase/collections'
 import { usePDF } from '@/composables/usePDF'
 import { useExport } from '@/composables/useExport'
-import { convertHtmlToPdf, triggerDownload } from '@/composables/usePdfApiService'
+import { convertHtmlToPdf, triggerDownload, downloadPdfToDownloads } from '@/composables/usePdfApiService'
 import { buildCompletionMessage, whatsAppChatUrl } from '@/utils/whatsapp'
 import { notifyWorker } from '@/utils/notifyWorker'
 import { SERVICE_CHECKLIST_LEFT, SERVICE_CHECKLIST_RIGHT, defaultServiceChecklist, defaultServiceChecklistRemarks, generateServiceReportPdf } from '@/utils/serviceReport'
@@ -1869,10 +1910,10 @@ async function generateInspectionPdf(inspection) {
   }
 }
 
-async function regenerateAndDownloadReceipt(log) {
+async function regenerateAndDownloadReceipt(log, saveMode = 'share') {
   if (!log) return
   try {
-    await generateMaintenanceReceipt(log)
+    await generateMaintenanceReceipt(log, saveMode)
   } catch { ui.error('Could not generate receipt.') }
 }
 
@@ -2875,7 +2916,7 @@ async function saveLog() {
 // Generates and downloads the "Service Report" PDF (checklist + signatures)
 // for a monthly visit log. jsPDF-based (landscape, matches printed stationery)
 // so it downloads instantly with no external API round-trip.
-async function generateMaintenanceReceipt(log) {
+async function generateMaintenanceReceipt(log, saveMode = 'share') {
   try {
     const ctx = await _getCtx()
     const sigSrc = log.signatureImage?.startsWith('data:image') ? log.signatureImage
@@ -2893,6 +2934,7 @@ async function generateMaintenanceReceipt(log) {
       customerName: log.signatoryName || '',
       customerSignature: sigSrc,
       personPhoto: log.personPhoto || '',
+      saveMode,
     }, ui)
     return true
   } catch (e) {
@@ -3132,7 +3174,7 @@ async function generateRenewalPdf() {
   }
 }
 
-async function exportHistoricalPDF(contract, renewal) {
+async function exportHistoricalPDF(contract, renewal, saveMode = 'share') {
   try {
     const { jsPDF } = await import('jspdf')
     const { applyPlugin } = await import('jspdf-autotable')
@@ -3170,7 +3212,11 @@ async function exportHistoricalPDF(contract, renewal) {
 
     await _drawFooter(doc)
     const filename = `AMC-History-${contract.contractNumber || contract.clientName}-${renewal.previousStartDate || 'past'}.pdf`
-    await savePDF(doc, filename, ui)
+    if (saveMode === 'downloads') {
+      await savePDFToDownloads(doc, filename, ui)
+    } else {
+      await savePDF(doc, filename, ui)
+    }
   } catch (e) {
     console.error('[AMCView] exportHistoricalPDF error', e)
     ui.error('Could not generate historical PDF.')
@@ -3178,7 +3224,7 @@ async function exportHistoricalPDF(contract, renewal) {
 }
 
 // ── PDF & Email ───────────────────────────────────────────────────────
-async function exportContractPDF(contract) {
+async function exportContractPDF(contract, saveMode = 'share') {
   try {
     const { jsPDF } = await import('jspdf')
     const { applyPlugin } = await import('jspdf-autotable')
@@ -3259,7 +3305,12 @@ async function exportContractPDF(contract) {
     }
 
     _drawFooter(doc, { company: company.name, title: 'AMC Contract', note: 'Internal Document · Confidential · Not for External Distribution' })
-    await savePDF(doc, `AMC-Contract-${(contract.contractNumber || contract.clientName || 'contract').replace(/\s+/g, '_')}.pdf`, ui)
+    const contractFilename = `AMC-Contract-${(contract.contractNumber || contract.clientName || 'contract').replace(/\s+/g, '_')}.pdf`
+    if (saveMode === 'downloads') {
+      await savePDFToDownloads(doc, contractFilename, ui)
+    } else {
+      await savePDF(doc, contractFilename, ui)
+    }
     ui.success('PDF exported.')
   } catch (e) {
     ui.error('PDF export failed: ' + e.message)
@@ -3457,7 +3508,7 @@ async function savePayment() {
 
 // Downloads the "Authorised Receipt" for a single payment history entry.
 // Regenerated on demand from the stored entry data (no hosted URL needed).
-async function downloadPaymentReceipt(contract, entry, historyIdx) {
+async function downloadPaymentReceipt(contract, entry, historyIdx, saveMode = 'share') {
   if (!contract || !entry) return
   try {
     const ctx = await _getCtx()
@@ -3472,6 +3523,7 @@ async function downloadPaymentReceipt(contract, entry, historyIdx) {
       billNo: contract.contractNumber || '',
       forText: 'AMC Servicing',
       repairAmcText: contract.contractNumber || 'AMC',
+      saveMode,
     }, ui)
   } catch (e) {
     console.error('[AMC] Payment receipt generation failed:', e)

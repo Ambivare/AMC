@@ -140,6 +140,14 @@
                   </button>
                   <button
                     class="btn-secondary btn-sm"
+                    style="font-size:10px;"
+                    @click.stop="regenerateAndDownloadMaintReceipt(visit, 'downloads')"
+                    title="Save Service Report to Downloads folder"
+                  >
+                    <FileDown :size="10" />
+                  </button>
+                  <button
+                    class="btn-secondary btn-sm"
                     style="font-size:10px;color:#25D366;"
                     @click.stop="shareVisitOnWhatsApp(visit, contract.clientPhone)"
                     title="Send Receipt via WhatsApp"
@@ -1463,7 +1471,7 @@ async function saveMonthCompletion() {
 // Generates and downloads the "Service Report" PDF (checklist + signatures).
 // jsPDF-based (landscape, matches printed stationery) — downloads instantly,
 // no external API round-trip or hosted URL needed.
-async function generateAmcReceipt(log) {
+async function generateAmcReceipt(log, saveMode = 'share') {
   const ctx = await _getCtx()
   const sigSrc = log.signatureImage?.startsWith('data:image') ? log.signatureImage
                : log.signature?.startsWith('data:image') ? log.signature : ''
@@ -1480,13 +1488,14 @@ async function generateAmcReceipt(log) {
     customerName: log.signatoryName || '',
     customerSignature: sigSrc,
     personPhoto: log.personPhoto || '',
+    saveMode,
   }, ui)
   return true
 }
 
-async function regenerateAndDownloadMaintReceipt(visit) {
+async function regenerateAndDownloadMaintReceipt(visit, saveMode = 'share') {
   try {
-    await generateAmcReceipt(visit)
+    await generateAmcReceipt(visit, saveMode)
   } catch { ui.error('Could not generate receipt.') }
 }
 

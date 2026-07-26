@@ -38,11 +38,18 @@ import('./stores/ui').then(({ useUIStore }) => registerFCMUIStore(useUIStore()))
 
 // Android hardware back button — without this, Capacitor's default behavior
 // is to exit the app immediately instead of navigating back within the SPA.
+// Note: the plugin's own `canGoBack` reflects the native WebView's history
+// stack, which does not reliably track Vue Router's pushState navigations —
+// it was staying false and exiting the app on every press. Vue Router's own
+// createWebHistory records a `back` pointer in `history.state` for every
+// entry, so check that instead to know whether there's an in-app screen to
+// return to.
 const HOME_ROUTES = ['/dashboard', '/login']
 if (Capacitor.isNativePlatform()) {
-  CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+  CapacitorApp.addListener('backButton', () => {
     const path = router.currentRoute.value.path
-    if (canGoBack && !HOME_ROUTES.includes(path)) {
+    const hasInAppHistory = !!window.history.state?.back
+    if (hasInAppHistory && !HOME_ROUTES.includes(path)) {
       window.history.back()
     } else {
       CapacitorApp.exitApp()

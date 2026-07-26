@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf'
-import { savePDF } from './saveFile'
+import { savePDF, savePDFToDownloads } from './saveFile'
 import { numberToWords } from '@/composables/useBillingPDF'
 import { getStampDataUri } from './pdfLogo'
 
@@ -29,6 +29,7 @@ export async function generatePaymentReceiptPdf({
   billNo = '',
   forText = 'AMC Servicing',
   repairAmcText = 'AMC',
+  saveMode = 'share',
 }, ui) {
   // Small landscape "receipt book" size — not A4
   const PW = 220, PH = 100
@@ -132,5 +133,9 @@ export async function generatePaymentReceiptPdf({
 
   const safeName = (receivedFrom || 'receipt').replace(/[^\w-]+/g, '_')
   const filename = `Payment-Receipt-${safeName}-${receiptNo || ''}.pdf`
-  await savePDF(doc, filename, ui)
+  if (saveMode === 'downloads') {
+    await savePDFToDownloads(doc, filename, ui)
+  } else {
+    await savePDF(doc, filename, ui)
+  }
 }

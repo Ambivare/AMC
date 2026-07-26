@@ -251,8 +251,16 @@
         </div>
       </template>
       <template #footer>
-        <button class="btn-secondary" @click="showViewModal = false">Close</button>
-        <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
+          <button class="btn-secondary" @click="showViewModal = false">Close</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+            <PDFDownloadButton v-if="viewTarget" class="btn-success btn-sm" :row="viewTarget" template-key="purchaseOrder" title="PDF"><Download :size="12" /></PDFDownloadButton>
+            <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
+            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(viewTarget)" title="Send Email"><Mail :size="12" /></button>
+            <button class="btn-danger btn-sm" @click="showViewModal = false; confirmDel(viewTarget)"><Trash2 :size="12" /></button>
+            <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
+          </div>
+        </div>
       </template>
     </AppModal>
   </div>

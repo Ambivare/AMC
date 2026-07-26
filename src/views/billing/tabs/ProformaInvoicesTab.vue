@@ -397,8 +397,21 @@
         </div>
       </template>
       <template #footer>
-        <button class="btn-secondary" @click="showViewModal = false">Close</button>
-        <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
+          <button class="btn-secondary" @click="showViewModal = false">Close</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+            <PDFDownloadButton v-if="viewTarget" class="btn-success btn-sm" :row="resolveRow(viewTarget)" template-key="proforma" title="Download Proforma Invoice PDF"><Download :size="12" /> PI</PDFDownloadButton>
+            <PDFDownloadButton v-if="viewTarget" class="btn-info btn-sm" :row="resolveRow(viewTarget)" template-key="invoice" title="Download Invoice PDF" style="background:rgba(99,102,241,0.12);color:#818cf8;border:1px solid rgba(99,102,241,0.25);"><Download :size="12" /> INV</PDFDownloadButton>
+            <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
+            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(viewTarget)" title="Send Email"><Mail :size="12" /></button>
+            <button class="btn-warning btn-sm" @click="showViewModal = false; openPayment(viewTarget)" title="Record Payment"><CreditCard :size="12" /></button>
+            <button class="btn-info btn-sm" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(168,85,247,0.1);color:#c084fc;border:1px solid rgba(168,85,247,0.2);cursor:pointer;" @click="convertToTI(viewTarget)" title="Convert to Tax Invoice" :disabled="viewTarget.status === 'converted'">
+              <ArrowRight :size="12" />
+            </button>
+            <button class="btn-danger btn-sm" @click="showViewModal = false; confirmDel(viewTarget)"><Trash2 :size="12" /></button>
+            <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
+          </div>
+        </div>
       </template>
     </AppModal>
   </div>
@@ -423,6 +436,7 @@ const ui = useUIStore()
 const auth = useAuthStore()
 const { items, loading, add, edit, del } = useCollection(Collections.PROFORMA_INVOICES)
 const { items: allProjects } = useCollection(Collections.PROJECTS)
+const { edit: editQuotation } = useCollection(Collections.QUOTATIONS, { autoLoad: false })
 
 // ── Project Link ─────────────────────────────────────────────────────
 const billUseProject = ref(false)
@@ -572,6 +586,14 @@ async function save() {
     } else {
       data.createdAt = new Date()
       await add(data, { action: 'created', module: 'proformaInvoices', tab: 'Billing', summary: `Created Proforma Invoice ${data.docNumber} for ${data.clientName}`, details: { docNumber: data.docNumber, clientName: data.clientName, amount: data.total } })
+      // Only mark the source quotation as converted once the PI actually exists —
+      // marking it earlier (when the convert button is first clicked) left
+      // quotations stuck showing "converted" with no PI ever created if this
+      // modal was closed without saving.
+      if (data.quotationId) {
+        try { await editQuotation(data.quotationId, { status: 'converted', updatedAt: new Date() }) }
+        catch (e) { console.error('[ProformaInvoices] Failed to mark source quotation converted:', e) }
+      }
       ui.success('Proforma invoice created.')
     }
     showModal.value = false
@@ -652,13 +674,10 @@ function openEmail(row) {
   showEmailModal.value = true
 }
 
-async function convertToTI(row) {
-  try {
-    await edit(row.id, { status: 'converted', updatedAt: new Date() }, { action: 'converted', module: 'proformaInvoices', tab: 'Billing', summary: `Converted Proforma Invoice ${row.docNumber} to Tax Invoice`, details: { docNumber: row.docNumber, clientName: row.clientName, amount: row.total } })
-    emit('convert-to-ti', row)
-  } catch {
-    ui.error('Failed to convert proforma invoice. Please try again.')
-  }
+function convertToTI(row) {
+  // The PI is only marked "converted" once the Tax Invoice opened below is
+  // actually saved (see TaxInvoicesTab.vue's save()).
+  emit('convert-to-ti', row)
 }
 
 function openWithData(quotationRow) {

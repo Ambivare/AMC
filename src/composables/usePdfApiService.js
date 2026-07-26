@@ -11,6 +11,7 @@
 
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/firebase/config'
+import { saveBytesToDownloads } from '@/utils/saveFile'
 
 const API_BASE = 'https://lr5pimglda.execute-api.us-east-1.amazonaws.com'
 const API_KEY  = 'Ambivare@9822091922'
@@ -148,6 +149,29 @@ export async function triggerDownload(retrieveUrl, filename) {
   document.body.appendChild(a)
   a.click()
   setTimeout(() => document.body.removeChild(a), 200)
+}
+
+/**
+ * Save a PDF straight to the device's Downloads folder — no Share sheet.
+ * Web: triggers a normal browser download.
+ */
+export async function downloadPdfToDownloads(retrieveUrl, filename, ui) {
+  const fname = filename || 'document.pdf'
+  try {
+    const response = await fetch(retrieveUrl)
+    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`)
+    const blob = await response.blob()
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload  = () => resolve(reader.result.split(',')[1])
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+    await saveBytesToDownloads(fname, base64, 'application/pdf', ui)
+  } catch (e) {
+    console.error('[PDF] Save to Downloads failed:', e)
+    ui?.error?.('Could not save to Downloads: ' + (e?.message || 'Unknown error'))
+  }
 }
 
 /**
