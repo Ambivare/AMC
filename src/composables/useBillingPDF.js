@@ -218,19 +218,6 @@ function buildItemsHtml(row, templateKey) {
     const rate = isLines ? (item.unitPrice || 0) : (item.rate || 0)
     const isLast = i === items.length - 1
 
-    if (templateKey === 'taxInvoice') {
-      // 6 cols: S.No | Description | HSN/SAC | Qty | Rate | Total
-      const lastStyle = isLast ? 'border-bottom:2px solid #000;' : ''
-      return `<tr class="data-row" style="${lastStyle}">
-        <td style="text-align:center;">${i + 1}</td>
-        <td>${item.description || ''}</td>
-        <td style="text-align:center;">${item.hsnCode || ''}</td>
-        <td style="text-align:center;">${qty}</td>
-        <td style="text-align:right;">${fc(rate)}</td>
-        <td style="text-align:right;">${fc(qty * rate)}</td>
-      </tr>`
-    }
-
     if (templateKey === 'invoice') {
       // 5 cols: S.No | Particulars | QTY | Rate | Amount
       const borderBottom = isLast ? '2px solid #000' : '1px solid #000'
@@ -438,7 +425,7 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   @page { size: A4; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; }
-  .doc-page { width: 210mm; min-height: 297mm; padding: 12mm 14mm; }
+  .doc-page { width: 210mm; min-height: 297mm; padding: 12mm 14mm; margin: 0 auto; }
   .box { border: 1.5px solid #000; }
   .co-hdr { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px 2px; }
   .co-hdr-left { display: flex; align-items: center; gap: 12px; }
@@ -460,7 +447,7 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   .footer-sig-left { display: flex; align-items: center; gap: 10px; }
   .footer-sig-left img { height: 32px; object-fit: contain; }
   .footer-sig-name { font-weight: 700; color: #1d4ed8; font-size: 13px; }
-  .footer-stamp img { height: 46px; object-fit: contain; opacity: .9; }
+  .footer-stamp img { height: 68px; object-fit: contain; opacity: .9; }
   .footer-website { text-align: center; font-size: 10px; padding: 4px 12px 8px; border-top: 1px solid #000; }
   .footer-website a { color: #1d4ed8; text-decoration: none; font-weight: 700; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -529,7 +516,7 @@ function buildQuotationStyleHtml(row, templateKey, company) {
 }
 
 function buildFallbackHtml(row, templateKey, company) {
-  if (templateKey === 'quotation' || templateKey === 'proforma') {
+  if (templateKey === 'quotation' || templateKey === 'proforma' || templateKey === 'taxInvoice') {
     return buildQuotationStyleHtml(row, templateKey, company)
   }
 
@@ -568,7 +555,7 @@ function buildFallbackHtml(row, templateKey, company) {
   @page { size: A4; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, sans-serif; font-size: 13px; color: #1e293b; }
-  .doc-page { width: 210mm; min-height: 297mm; display: flex; flex-direction: column; }
+  .doc-page { width: 210mm; min-height: 297mm; margin: 0 auto; display: flex; flex-direction: column; }
   .doc-body { flex: 1; padding: 14px 20mm; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #dc2626; padding-bottom: 14px; margin-bottom: 20px; }
   .company-name { font-size: 20px; font-weight: 700; color: #b91c1c; margin-top: 8px; }
@@ -590,7 +577,7 @@ function buildFallbackHtml(row, templateKey, company) {
   .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #fecaca; display: flex; justify-content: space-between; align-items: flex-end; font-size: 11px; color: #94a3b8; }
   .footer-left { display: flex; align-items: center; gap: 10px; }
   .footer-left img.sig { height: 30px; object-fit: contain; }
-  .footer-stamp img { height: 42px; object-fit: contain; opacity: .9; }
+  .footer-stamp img { height: 62px; object-fit: contain; opacity: .9; }
   .footer-website { text-align: center; font-size: 10px; margin-top: 10px; }
   .footer-website a { color: #dc2626; text-decoration: none; font-weight: 700; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
