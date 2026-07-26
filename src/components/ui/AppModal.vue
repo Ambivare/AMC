@@ -31,7 +31,9 @@
 </template>
 
 <script setup>
+import { watch, onBeforeUnmount } from 'vue'
 import { X } from 'lucide-vue-next'
+import { pushBackHandler, removeBackHandler } from '@/utils/backHandlerStack'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -53,6 +55,25 @@ function onXClose() {
   emit('update:modelValue', false)
   emit('close')
 }
+
+// Hardware back button closes this modal instead of navigating the page
+// behind it — see src/utils/backHandlerStack.js.
+let backHandlerEntry = null
+watch(() => props.modelValue, (open) => {
+  if (open) {
+    backHandlerEntry = pushBackHandler(() => {
+      emit('update:modelValue', false)
+      emit('close')
+    })
+  } else if (backHandlerEntry) {
+    removeBackHandler(backHandlerEntry)
+    backHandlerEntry = null
+  }
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  if (backHandlerEntry) removeBackHandler(backHandlerEntry)
+})
 </script>
 
 <style scoped>

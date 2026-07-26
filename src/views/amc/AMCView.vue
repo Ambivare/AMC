@@ -1714,6 +1714,7 @@ import LiftSelector from '@/components/ui/LiftSelector.vue'
 import ExportDialog from '@/components/ui/ExportDialog.vue'
 import AmcEmailModal from '@/components/ui/AmcEmailModal.vue'
 import { useCollection } from '@/composables/useCollection'
+import { useTabBackHandler } from '@/composables/useTabBackHandler'
 import { useUIStore } from '@/stores/ui'
 import { useActivityStore } from '@/stores/activity'
 import { savePDF, savePDFToDownloads } from '@/utils/saveFile'
@@ -2132,6 +2133,7 @@ function amcDelayCloseDropdown() {
 
 // ── Tabs ─────────────────────────────────────────────────────────────
 const activeTab = ref('contracts')
+useTabBackHandler(activeTab, 'contracts')
 
 // Auto-open from Reminders
 watch([() => ui.pendingAutoOpen, contracts], () => {

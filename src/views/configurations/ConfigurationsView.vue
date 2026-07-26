@@ -619,6 +619,7 @@ import {
 import { getAll, create, update, remove } from '@/firebase/firestore'
 import { Collections } from '@/firebase/collections'
 import { useCollection } from '@/composables/useCollection'
+import { useTabBackHandler } from '@/composables/useTabBackHandler'
 import { useUIStore } from '@/stores/ui'
 import { useActivityStore } from '@/stores/activity'
 import { useCompanyConfig } from '@/composables/useCompanyConfig'
@@ -635,6 +636,7 @@ const saving = ref(false)
 const showPreview = ref(false)
 const previewFrame = ref(null)
 const activeTab = ref('company')
+useTabBackHandler(activeTab, 'company')
 const activeTemplate = ref('quotation')
 let configDocId = null
 

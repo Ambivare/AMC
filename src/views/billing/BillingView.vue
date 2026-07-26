@@ -59,8 +59,10 @@ import QuotationsTab from './tabs/QuotationsTab.vue'
 import ProformaInvoicesTab from './tabs/ProformaInvoicesTab.vue'
 import PurchaseOrdersTab from './tabs/PurchaseOrdersTab.vue'
 import TaxInvoicesTab from './tabs/TaxInvoicesTab.vue'
+import { useTabBackHandler } from '@/composables/useTabBackHandler'
 
 const activeTab = ref('installation')
+useTabBackHandler(activeTab, 'installation')
 const quotationsTabRef = ref(null)
 const proformaTabRef = ref(null)
 const taxTabRef = ref(null)

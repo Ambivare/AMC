@@ -9,6 +9,7 @@ import { enableNetwork } from 'firebase/firestore'
 import { db } from './firebase/config'
 import { Capacitor } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
+import { consumeBackHandler } from './utils/backHandlerStack'
 
 setupClickLock()
 
@@ -44,9 +45,15 @@ import('./stores/ui').then(({ useUIStore }) => registerFCMUIStore(useUIStore()))
 // createWebHistory records a `back` pointer in `history.state` for every
 // entry, so check that instead to know whether there's an in-app screen to
 // return to.
+//
+// Open modals and non-default in-page sub-tabs (e.g. AMC's Payments tab)
+// aren't part of the route at all, so they're checked first via a global
+// handler stack (src/utils/backHandlerStack.js) — closing a modal or
+// resetting a sub-tab consumes the press instead of navigating/exiting.
 const HOME_ROUTES = ['/dashboard', '/login']
 if (Capacitor.isNativePlatform()) {
   CapacitorApp.addListener('backButton', () => {
+    if (consumeBackHandler()) return
     const path = router.currentRoute.value.path
     const hasInAppHistory = !!window.history.state?.back
     if (hasInAppHistory && !HOME_ROUTES.includes(path)) {

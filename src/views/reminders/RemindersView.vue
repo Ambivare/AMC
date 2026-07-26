@@ -81,6 +81,7 @@ import { ref, computed } from 'vue'
 import { Bell, Clock, ArrowRight, CheckCircle2, Loader2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useCollection } from '@/composables/useCollection'
+import { useTabBackHandler } from '@/composables/useTabBackHandler'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
 
@@ -290,6 +291,7 @@ const allReminders = computed(() => {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 const activeTab = ref('all')
+useTabBackHandler(activeTab, 'all')
 
 const tabs = computed(() => [
   { key: 'all',                label: 'All',                 count: allReminders.value.length,                urgentCount: allReminders.value.filter(r => r.daysUntil !== null && r.daysUntil < 0).length },
