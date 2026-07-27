@@ -448,9 +448,11 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   .amount-words { border-top: 1px solid #000; padding: 8px 12px; font-weight: 700; font-size: 12.5px; }
   .footer-sig { display: flex; justify-content: space-between; align-items: flex-end; padding: 10px 12px 12px; border-top: 1px solid #000; }
   .footer-sig-left { display: flex; align-items: center; gap: 10px; }
-  .footer-sig-left img { height: 38px; object-fit: contain; }
+  .stamp-sig-combo { position: relative; width: 64px; height: 73px; flex-shrink: 0; }
+  .stamp-sig-combo .stamp-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: .9; }
+  .stamp-sig-combo .sig-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; height: auto; z-index: 2; }
   .footer-sig-name { font-weight: 700; color: #1d4ed8; font-size: 13px; }
-  .footer-stamp img { height: 76px; object-fit: contain; opacity: .9; }
+  .footer-customer-sig { font-size: 11px; color: #475569; text-align: center; min-width: 130px; }
   .footer-website { text-align: center; font-size: 10px; padding: 4px 12px 8px; border-top: 1px solid #000; }
   .footer-website a { color: #1d4ed8; text-decoration: none; font-weight: 700; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -508,10 +510,13 @@ function buildQuotationStyleHtml(row, templateKey, company) {
     ${row.notes ? `<div style="padding:8px 12px;border-top:1px solid #000;font-size:11.5px;">${row.notes}</div>` : ''}
     <div class="footer-sig">
       <div class="footer-sig-left">
-        ${company.signatureUrl ? `<img src="${company.signatureUrl}" alt="Signature">` : ''}
+        <div class="stamp-sig-combo">
+          ${company.stampUrl ? `<img class="stamp-img" src="${company.stampUrl}" alt="Stamp">` : ''}
+          ${company.signatureUrl ? `<img class="sig-img" src="${company.signatureUrl}" alt="Signature">` : ''}
+        </div>
         <div class="footer-sig-name">${company.name || ''}</div>
       </div>
-      <div class="footer-stamp">${company.stampUrl ? `<img src="${company.stampUrl}" alt="Stamp">` : ''}</div>
+      <div class="footer-customer-sig">Customer Signature</div>
     </div>
     <div class="footer-website"><a href="https://www.tabelevators.in">www.tabelevators.in</a></div>
   </div>
@@ -584,8 +589,10 @@ function buildFallbackHtml(row, templateKey, company) {
   .notes { margin-top: 12px; padding: 10px 14px; background: #fef2f2; border-radius: 6px; font-size: 12px; color: #64748b; }
   .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #fecaca; display: flex; justify-content: space-between; align-items: flex-end; font-size: 11px; color: #94a3b8; }
   .footer-left { display: flex; align-items: center; gap: 10px; }
-  .footer-left img.sig { height: 36px; object-fit: contain; }
-  .footer-stamp img { height: 70px; object-fit: contain; opacity: .9; }
+  .stamp-sig-combo { position: relative; width: 60px; height: 68px; flex-shrink: 0; }
+  .stamp-sig-combo .stamp-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: .9; }
+  .stamp-sig-combo .sig-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; height: auto; z-index: 2; }
+  .footer-customer-sig { font-size: 11px; color: #94a3b8; text-align: center; min-width: 130px; }
   .footer-website { text-align: center; font-size: 10px; margin-top: 10px; }
   .footer-website a { color: #dc2626; text-decoration: none; font-weight: 700; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -629,10 +636,13 @@ ${!isBOM && (row.numberOfLifts || row.liftDescription) ? `<div style="display:fl
 ${row.notes ? `<div class="notes"><strong>Notes:</strong> ${row.notes}</div>` : ''}
 <div class="footer">
   <div class="footer-left">
-    ${company.signatureUrl ? `<img class="sig" src="${company.signatureUrl}" alt="Signature">` : ''}
+    <div class="stamp-sig-combo">
+      ${company.stampUrl ? `<img class="stamp-img" src="${company.stampUrl}" alt="Stamp">` : ''}
+      ${company.signatureUrl ? `<img class="sig-img" src="${company.signatureUrl}" alt="Signature">` : ''}
+    </div>
     <div>For ${company.name || ''}<br><span style="border-top:1px solid #dc2626;padding-top:4px;display:inline-block;">Authorised Signatory</span></div>
   </div>
-  <div class="footer-stamp">${company.stampUrl ? `<img src="${company.stampUrl}" alt="Stamp">` : ''}</div>
+  <div class="footer-customer-sig">Customer Signature</div>
 </div>
 <div class="footer-website"><a href="https://www.tabelevators.in">www.tabelevators.in</a></div>
 </div>
