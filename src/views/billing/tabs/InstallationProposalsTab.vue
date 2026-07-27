@@ -39,11 +39,7 @@
         <td @click.stop>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn-secondary btn-sm" @click="openEdit(row)"><Pencil :size="12" /></button>
-            <button class="btn-success btn-sm" :disabled="pdfLoading[row.id]" @click="downloadPDF(row)" title="PDF">
-              <Loader2 v-if="pdfLoading[row.id]" :size="12" class="spin" />
-              <Download v-else :size="12" />
-            </button>
-            <button class="btn-secondary btn-sm" :disabled="pdfSavingToDownloads[row.id]" @click="downloadPDFToDownloads(row)" title="Save PDF to Downloads folder">
+            <button class="btn-success btn-sm" :disabled="pdfSavingToDownloads[row.id]" @click="downloadPDFToDownloads(row)" title="Download PDF">
               <Loader2 v-if="pdfSavingToDownloads[row.id]" :size="12" class="spin" />
               <FileDown v-else :size="12" />
             </button>
@@ -272,14 +268,14 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Plus, Search, Pencil, Trash2, Save, Download, FileDown, FolderOpen, Tag, Loader2, Wand2 } from 'lucide-vue-next'
+import { Plus, Search, Pencil, Trash2, Save, FileDown, FolderOpen, Tag, Loader2, Wand2 } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
-import { generateOrGetPdf, triggerDownload, downloadPdfToDownloads } from '@/composables/usePdfApiService'
+import { generateOrGetPdf, downloadPdfToDownloads } from '@/composables/usePdfApiService'
 import { getHeaderImgDataUri, getFooterImgDataUri, getStampDataUri } from '@/utils/pdfLogo'
 import {
   LIFT_SPEC_ITEMS, DEFAULT_LIFT_SPEC_REMARKS, CLIENT_SCOPE_WORK_ITEMS,
@@ -368,7 +364,6 @@ function rowTotal(row) {
 const showModal = ref(false)
 const editing = ref(null)
 const saving = ref(false)
-const pdfLoading = ref({})
 const pdfSavingToDownloads = ref({})
 
 function defaultForm() {
@@ -458,20 +453,6 @@ async function resolveProposalPdfUrl(row) {
   const filename = `${row.proposalNo || 'Installation-Proposal'}.pdf`
   const url = await generateOrGetPdf(row, 'installationProposal', html, filename)
   return { url, filename }
-}
-
-async function downloadPDF(row) {
-  if (pdfLoading.value[row.id]) return
-  pdfLoading.value[row.id] = true
-  try {
-    const { url, filename } = await resolveProposalPdfUrl(row)
-    await triggerDownload(url, filename)
-    ui.success('PDF ready — opening download.')
-  } catch (e) {
-    ui.error(e?.message || 'PDF generation failed. Please try again.')
-  } finally {
-    pdfLoading.value[row.id] = false
-  }
 }
 
 async function downloadPDFToDownloads(row) {

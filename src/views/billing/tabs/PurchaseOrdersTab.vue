@@ -45,7 +45,6 @@
             <button class="btn-secondary btn-sm" @click="openEdit(row)"><Pencil :size="12" /></button>
             <PDFDownloadButton class="btn-success btn-sm" :row="row" template-key="purchaseOrder" title="PDF"><Download :size="12" /></PDFDownloadButton>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(row)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(row)" title="Send Email"><Mail :size="12" /></button>
             <button class="btn-danger btn-sm" @click="confirmDel(row)"><Trash2 :size="12" /></button>
           </div>
         </td>
@@ -211,7 +210,6 @@
     </AppModal>
 
     <ConfirmDialog ref="confirmRef" title="Delete Purchase Order" @confirm="doDelete" />
-    <EmailModal :show="showEmailModal" :row="emailRow" template-key="purchaseOrder" @close="showEmailModal = false" />
 
     <!-- Purchase Order Detail View Modal -->
     <AppModal v-model="showViewModal" :title="viewTarget ? (viewTarget.docNumber || 'Purchase Order') : 'Purchase Order'" width="580px">
@@ -256,7 +254,6 @@
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
             <PDFDownloadButton v-if="viewTarget" class="btn-success btn-sm" :row="viewTarget" template-key="purchaseOrder" title="PDF"><Download :size="12" /></PDFDownloadButton>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(viewTarget)" title="Send Email"><Mail :size="12" /></button>
             <button class="btn-danger btn-sm" @click="showViewModal = false; confirmDel(viewTarget)"><Trash2 :size="12" /></button>
             <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
           </div>
@@ -268,12 +265,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Plus, Search, Pencil, Trash2, Save, Download, FileSpreadsheet, FolderOpen, Mail } from 'lucide-vue-next'
+import { Plus, Search, Pencil, Trash2, Save, Download, FileSpreadsheet, FolderOpen } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import PDFDownloadButton from '@/components/ui/PDFDownloadButton.vue'
-import EmailModal from '@/components/ui/EmailModal.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
@@ -425,14 +421,6 @@ const deleteTarget = ref(null)
 async function downloadRowExcel(row) {
   try { await downloadExcel(row, 'purchaseOrder') }
   catch (e) { ui.error('Failed to generate Excel: ' + (e?.message || e)) }
-}
-
-const showEmailModal = ref(false)
-const emailRow = ref(null)
-function openEmail(row) {
-  if (!row.clientEmail) { ui.warning('No email address on this record. Edit the document and add a vendor email first.'); return }
-  emailRow.value = row
-  showEmailModal.value = true
 }
 
 function confirmDel(row) { deleteTarget.value = row; confirmRef.value?.open(`Delete ${row.docNumber}? This cannot be undone.`) }

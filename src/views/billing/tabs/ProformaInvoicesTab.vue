@@ -55,7 +55,6 @@
             <PDFDownloadButton class="btn-success btn-sm" :row="resolveRow(row)" template-key="proforma" title="Download Proforma Invoice PDF"><Download :size="12" /> PI</PDFDownloadButton>
             <PDFDownloadButton class="btn-info btn-sm" :row="resolveRow(row)" template-key="invoice" title="Download Invoice PDF" style="background:rgba(99,102,241,0.12);color:#818cf8;border:1px solid rgba(99,102,241,0.25);"><Download :size="12" /> INV</PDFDownloadButton>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(row)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(row)" title="Send Email"><Mail :size="12" /></button>
             <button class="btn-warning btn-sm" @click="openPayment(row)" title="Record Payment"><CreditCard :size="12" /></button>
             <button class="btn-info btn-sm" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(168,85,247,0.1);color:#c084fc;border:1px solid rgba(168,85,247,0.2);cursor:pointer;" @click="convertToTI(row)" title="Convert to Tax Invoice" :disabled="row.status === 'converted'">
               <ArrowRight :size="12" />
@@ -316,7 +315,6 @@
     </AppModal>
 
     <ConfirmDialog ref="confirmRef" title="Delete Proforma Invoice" @confirm="doDelete" />
-    <EmailModal :show="showEmailModal" :row="emailRow" template-key="proforma" @close="showEmailModal = false" />
 
     <!-- Proforma Invoice Detail View Modal -->
     <AppModal v-model="showViewModal" :title="viewTarget ? (viewTarget.docNumber || 'Proforma Invoice') : 'Proforma Invoice'" width="580px">
@@ -403,7 +401,6 @@
             <PDFDownloadButton v-if="viewTarget" class="btn-success btn-sm" :row="resolveRow(viewTarget)" template-key="proforma" title="Download Proforma Invoice PDF"><Download :size="12" /> PI</PDFDownloadButton>
             <PDFDownloadButton v-if="viewTarget" class="btn-info btn-sm" :row="resolveRow(viewTarget)" template-key="invoice" title="Download Invoice PDF" style="background:rgba(99,102,241,0.12);color:#818cf8;border:1px solid rgba(99,102,241,0.25);"><Download :size="12" /> INV</PDFDownloadButton>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(viewTarget)" title="Send Email"><Mail :size="12" /></button>
             <button class="btn-warning btn-sm" @click="showViewModal = false; openPayment(viewTarget)" title="Record Payment"><CreditCard :size="12" /></button>
             <button class="btn-info btn-sm" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(168,85,247,0.1);color:#c084fc;border:1px solid rgba(168,85,247,0.2);cursor:pointer;" @click="convertToTI(viewTarget)" title="Convert to Tax Invoice" :disabled="viewTarget.status === 'converted'">
               <ArrowRight :size="12" />
@@ -419,12 +416,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Plus, Search, Pencil, Trash2, Save, Download, ArrowRight, CreditCard, FileSpreadsheet, FolderOpen, Mail } from 'lucide-vue-next'
+import { Plus, Search, Pencil, Trash2, Save, Download, ArrowRight, CreditCard, FileSpreadsheet, FolderOpen } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import PDFDownloadButton from '@/components/ui/PDFDownloadButton.vue'
 import DataTable from '@/components/ui/DataTable.vue'
-import EmailModal from '@/components/ui/EmailModal.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
@@ -663,15 +659,6 @@ async function downloadRowExcel(row) {
     : { ...row, projectName: allProjects.value.find(p => p.id === row.projectId)?.projectName || '' }
   try { await downloadExcel(resolved, 'proforma') }
   catch (e) { ui.error('Failed to generate Excel: ' + (e?.message || e)) }
-}
-
-const showEmailModal = ref(false)
-const emailRow = ref(null)
-function openEmail(row) {
-  if (!row.clientEmail) { ui.warning('No email address on this record. Edit the document and add a client email first.'); return }
-  emailRow.value = row.projectName || !row.projectId ? row
-    : { ...row, projectName: allProjects.value.find(p => p.id === row.projectId)?.projectName || '' }
-  showEmailModal.value = true
 }
 
 function convertToTI(row) {

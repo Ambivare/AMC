@@ -76,7 +76,6 @@
             <button class="btn-secondary btn-sm" @click="openEdit(row)"><Pencil :size="12" /></button>
             <PDFDownloadButton class="btn-success btn-sm" :row="resolveRow(row)" template-key="taxInvoice" title="Download PDF"><Download :size="12" /></PDFDownloadButton>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(row)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(row)" title="Send Email"><Mail :size="12" /></button>
             <button class="btn-warning btn-sm" @click="openPayment(row)" title="Record Payment"><CreditCard :size="12" /></button>
             <button class="btn-danger btn-sm" @click="confirmDel(row)"><Trash2 :size="12" /></button>
           </div>
@@ -316,7 +315,6 @@
     </AppModal>
 
     <ConfirmDialog ref="confirmRef" title="Delete Tax Invoice" @confirm="doDelete" />
-    <EmailModal :show="showEmailModal" :row="emailRow" template-key="taxInvoice" @close="showEmailModal = false" />
 
     <!-- Tax Invoice Detail View Modal -->
     <AppModal v-model="showViewModal" :title="viewTarget ? (viewTarget.docNumber || 'Tax Invoice') : 'Tax Invoice'" width="580px">
@@ -376,7 +374,6 @@
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
             <PDFDownloadButton v-if="viewTarget" class="btn-success btn-sm" :row="resolveRow(viewTarget)" template-key="taxInvoice" title="Download PDF"><Download :size="12" /></PDFDownloadButton>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(viewTarget)" title="Send Email"><Mail :size="12" /></button>
             <button class="btn-warning btn-sm" @click="showViewModal = false; openPayment(viewTarget)" title="Record Payment"><CreditCard :size="12" /></button>
             <button class="btn-danger btn-sm" @click="showViewModal = false; confirmDel(viewTarget)"><Trash2 :size="12" /></button>
             <button class="btn-primary" @click="showViewModal = false; openEdit(viewTarget)">Edit</button>
@@ -389,12 +386,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Search, Plus, Pencil, Trash2, Download, Save, CreditCard, FileSpreadsheet, FolderOpen, Mail } from 'lucide-vue-next'
+import { Search, Plus, Pencil, Trash2, Download, Save, CreditCard, FileSpreadsheet, FolderOpen } from 'lucide-vue-next'
 import DataTable from '@/components/ui/DataTable.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import PDFDownloadButton from '@/components/ui/PDFDownloadButton.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
-import EmailModal from '@/components/ui/EmailModal.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
@@ -592,15 +588,6 @@ async function downloadRowExcel(row) {
     : { ...row, projectName: allProjects.value.find(p => p.id === row.projectId)?.projectName || '' }
   try { await downloadExcel(resolved, 'taxInvoice') }
   catch (e) { ui.error('Failed to generate Excel: ' + (e?.message || e)) }
-}
-
-const showEmailModal = ref(false)
-const emailRow = ref(null)
-function openEmail(row) {
-  if (!row.clientEmail) { ui.warning('No email address on this record. Edit the document and add a client email first.'); return }
-  emailRow.value = row.projectName || !row.projectId ? row
-    : { ...row, projectName: allProjects.value.find(p => p.id === row.projectId)?.projectName || '' }
-  showEmailModal.value = true
 }
 
 function confirmDel(row) { deleteTarget.value = row; confirmRef.value?.open(`Delete invoice "${row.docNumber}"?`) }

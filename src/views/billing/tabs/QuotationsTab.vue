@@ -49,16 +49,11 @@
         <td @click.stop>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn-secondary btn-sm" @click="openEdit(row)"><Pencil :size="12" /></button>
-            <button class="btn-success btn-sm" :disabled="pdfLoading[row.id]" @click="downloadPDF(row)" title="PDF">
-              <Loader2 v-if="pdfLoading[row.id]" :size="12" class="spin" />
-              <Download v-else :size="12" />
-            </button>
-            <button class="btn-secondary btn-sm" :disabled="pdfSavingToDownloads[row.id]" @click="downloadPDFToDownloads(row)" title="Save PDF to Downloads folder">
+            <button class="btn-success btn-sm" :disabled="pdfSavingToDownloads[row.id]" @click="downloadPDFToDownloads(row)" title="Download PDF">
               <Loader2 v-if="pdfSavingToDownloads[row.id]" :size="12" class="spin" />
               <FileDown v-else :size="12" />
             </button>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(row)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(row)" title="Send Email"><Mail :size="12" /></button>
             <button class="btn-warning btn-sm" @click="convertToPI(row)" title="Convert to Proforma Invoice" :disabled="row.status === 'converted'">
               <ArrowRight :size="12" />
             </button>
@@ -401,7 +396,6 @@
     </AppModal>
 
     <ConfirmDialog ref="confirmRef" title="Delete Quotation" @confirm="doDelete" />
-    <EmailModal :show="showEmailModal" :row="emailRow" template-key="quotation" @close="showEmailModal = false" />
 
     <!-- Quotation Detail View Modal -->
     <AppModal v-model="showViewModal" :title="viewTarget ? (viewTarget.docNumber || 'Quotation') : 'Quotation'" width="600px">
@@ -460,16 +454,11 @@
         <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
           <button class="btn-secondary" @click="showViewModal = false">Close</button>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
-            <button class="btn-success btn-sm" :disabled="pdfLoading[viewTarget?.id]" @click="downloadPDF(viewTarget)" title="PDF">
-              <Loader2 v-if="pdfLoading[viewTarget?.id]" :size="12" class="spin" />
-              <Download v-else :size="12" />
-            </button>
-            <button class="btn-secondary btn-sm" :disabled="pdfSavingToDownloads[viewTarget?.id]" @click="downloadPDFToDownloads(viewTarget)" title="Save PDF to Downloads folder">
+            <button class="btn-success btn-sm" :disabled="pdfSavingToDownloads[viewTarget?.id]" @click="downloadPDFToDownloads(viewTarget)" title="Download PDF">
               <Loader2 v-if="pdfSavingToDownloads[viewTarget?.id]" :size="12" class="spin" />
               <FileDown v-else :size="12" />
             </button>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);cursor:pointer;" @click="openEmail(viewTarget)" title="Send Email"><Mail :size="12" /></button>
             <button class="btn-warning btn-sm" @click="convertToPI(viewTarget)" title="Convert to Proforma Invoice" :disabled="viewTarget?.status === 'converted'">
               <ArrowRight :size="12" />
             </button>
@@ -484,11 +473,10 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Plus, Search, Pencil, Trash2, Save, Download, FileDown, ArrowRight, FileSpreadsheet, FolderOpen, Layers, Tag, Loader2, Mail, Wand2 } from 'lucide-vue-next'
+import { Plus, Search, Pencil, Trash2, Save, FileDown, ArrowRight, FileSpreadsheet, FolderOpen, Layers, Tag, Loader2, Wand2 } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import DataTable from '@/components/ui/DataTable.vue'
-import EmailModal from '@/components/ui/EmailModal.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
@@ -496,7 +484,7 @@ import { db } from '@/firebase/config'
 import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore'
 import { downloadExcel } from '@/composables/useBillingExcel'
 import { loadBillingConfig, renderBillingHtml, renderQuotationWithBomHtml, getDocMeta } from '@/composables/useBillingPDF'
-import { generateOrGetPdf, triggerDownload, downloadPdfToDownloads } from '@/composables/usePdfApiService'
+import { generateOrGetPdf, downloadPdfToDownloads } from '@/composables/usePdfApiService'
 
 const emit = defineEmits(['convert-to-pi'])
 const ui = useUIStore()
@@ -636,7 +624,6 @@ const viewTarget = ref(null)
 function openView(row) { viewTarget.value = row; showViewModal.value = true }
 const editing = ref(null)
 const saving = ref(false)
-const pdfLoading = ref({})
 const pdfSavingToDownloads = ref({})
 
 const defaultForm = () => {
@@ -850,20 +837,6 @@ async function resolveQuotationPdfUrl(row) {
   return { url, filename }
 }
 
-async function downloadPDF(row) {
-  if (pdfLoading.value[row.id]) return
-  pdfLoading.value[row.id] = true
-  try {
-    const { url, filename } = await resolveQuotationPdfUrl(row)
-    await triggerDownload(url, filename)
-    ui.success('PDF ready — opening download.')
-  } catch (e) {
-    ui.error(e?.message || 'PDF generation failed. Please try again.')
-  } finally {
-    pdfLoading.value[row.id] = false
-  }
-}
-
 async function downloadPDFToDownloads(row) {
   if (pdfSavingToDownloads.value[row.id]) return
   pdfSavingToDownloads.value[row.id] = true
@@ -875,15 +848,6 @@ async function downloadPDFToDownloads(row) {
   } finally {
     pdfSavingToDownloads.value[row.id] = false
   }
-}
-
-const showEmailModal = ref(false)
-const emailRow = ref(null)
-function openEmail(row) {
-  if (!row.clientEmail) { ui.warning('No email address on this record. Edit the document and add a client email first.'); return }
-  emailRow.value = row.projectName || !row.projectId ? row
-    : { ...row, projectName: allProjects.value.find(p => p.id === row.projectId)?.projectName || '' }
-  showEmailModal.value = true
 }
 
 function convertToPI(row) {

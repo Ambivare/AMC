@@ -181,6 +181,30 @@
   .btn-sm { padding: 6px 12px !important; font-size: 12px !important; border-radius: 8px !important; }
   .btn-icon { padding: 8px !important; }
 
+  /* Small action-row buttons (table rows, view-modal footers) — raised,
+     "pop-out" look so they read clearly against the dark background instead
+     of blending into it as flat chips. */
+  .btn-primary.btn-sm, .btn-secondary.btn-sm, .btn-danger.btn-sm,
+  .btn-success.btn-sm, .btn-warning.btn-sm, .btn-excel.btn-sm {
+    font-weight: 600;
+    border-bottom-width: 2px;
+    box-shadow:
+      0 2px 0 rgba(0,0,0,0.45),
+      0 4px 10px rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  .btn-secondary.btn-sm { background: rgba(255,255,255,0.11); color: #e2e8f0; }
+  .btn-danger.btn-sm    { background: rgba(239,68,68,0.18);  color: #fca5a5; }
+  .btn-success.btn-sm   { background: rgba(16,185,129,0.18); color: #6ee7b7; }
+  .btn-warning.btn-sm   { background: rgba(245,158,11,0.18); color: #fbbf24; }
+  .btn-excel.btn-sm     { background: rgba(21,128,61,0.2);   color: #4ade80; }
+
+  .btn-primary.btn-sm:active, .btn-secondary.btn-sm:active, .btn-danger.btn-sm:active,
+  .btn-success.btn-sm:active, .btn-warning.btn-sm:active, .btn-excel.btn-sm:active {
+    box-shadow: 0 1px 0 rgba(0,0,0,0.35), inset 0 1px 3px rgba(0,0,0,0.35) !important;
+    transform: translateY(1px) scale(0.97) !important;
+  }
+
   .input {
     width: 100%; padding: 10px 14px; border-radius: 12px;
     font-size: 13px; outline: none; transition: all 0.2s;
