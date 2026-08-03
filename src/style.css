@@ -363,10 +363,20 @@
   .tab-btn:hover:not(.active) { color: #94a3b8; background: rgba(255,255,255,0.04); }
 
   /* ── Mobile: buttons full-width in stacked layouts ───────────────────── */
-  @media (max-width: 480px) {
+  /* Widened from 480px: on narrower "phablet"-range phones the create
+     button was staying inline next to the search box + status filter,
+     squeezing it into a thin sliver at the row's edge — easy to miss or
+     mis-tap depending on exact screen width. Stacking it onto its own full
+     row below ~640px makes its placement predictable everywhere. */
+  @media (max-width: 640px) {
     .btn-primary, .btn-secondary, .btn-danger, .btn-success, .btn-warning {
       width: 100%; justify-content: center;
     }
+    /* Small action buttons (table rows, modal-footer icon actions) are
+       never meant to go full-width — forcing that made them stretch and
+       stack awkwardly instead of sitting inline as intended. */
+    .btn-primary.btn-sm, .btn-secondary.btn-sm, .btn-danger.btn-sm,
+    .btn-success.btn-sm, .btn-warning.btn-sm, .btn-excel.btn-sm,
     .page-header .btn-primary,
     .page-header .btn-secondary,
     .page-header .btn-danger,

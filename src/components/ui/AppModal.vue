@@ -45,8 +45,20 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'close'])
 
+// Guards against the tap that OPENS the modal also being read as a tap that
+// closes it. On some devices the modal's paint lands late enough after the
+// opening tap that a user's instinctive follow-up tap — or a stray/ghost
+// touch event the browser synthesizes for the same gesture — arrives at the
+// same screen position now occupied by the backdrop, closing the form
+// before it's even seen. Ignoring backdrop clicks for a brief window right
+// after opening fixes that without weakening the "tap outside to close"
+// behavior once the modal has actually settled.
+const OPEN_GRACE_MS = 400
+let openedAt = 0
+
 function onBackdropClose() {
   if (props.persistent) return
+  if (Date.now() - openedAt < OPEN_GRACE_MS) return
   emit('update:modelValue', false)
   emit('close')
 }
@@ -61,6 +73,7 @@ function onXClose() {
 let backHandlerEntry = null
 watch(() => props.modelValue, (open) => {
   if (open) {
+    openedAt = Date.now()
     backHandlerEntry = pushBackHandler(() => {
       emit('update:modelValue', false)
       emit('close')
