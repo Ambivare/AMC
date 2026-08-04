@@ -3,15 +3,12 @@ import { createPinia } from 'pinia'
 import './style.css'
 import App from './App.vue'
 import router from './router'
-import { setupClickLock } from './utils/clickLock'
 import { registerFCMRouter, registerFCMUIStore } from './firebase/fcm'
 import { enableNetwork } from 'firebase/firestore'
 import { db } from './firebase/config'
 import { Capacitor } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
 import { consumeBackHandler } from './utils/backHandlerStack'
-
-setupClickLock()
 
 // When the browser wakes the tab from background freeze, re-enable Firebase
 // network so Firestore listeners reconnect and the UI unfreezes immediately.
