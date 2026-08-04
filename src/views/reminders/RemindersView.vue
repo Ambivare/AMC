@@ -125,12 +125,36 @@ function getProjectName(id) {
 // ── AMC Installment helper (mirrors AMCView logic) ────────────────────────────
 const FREQ_TO_MONTHS = { monthly: 1, 'bi-monthly': 2, quarterly: 3, '4-monthly': 4, 'half-yearly': 6, yearly: 12 }
 
+// Payment Type doubles as the payment schedule's frequency ("Full Payment"
+// or the same frequency choices as Service Frequency). Contracts saved
+// before that change stored the generic value "installments", with the
+// cadence coming from the contract's own Frequency field instead.
+function paymentFrequencyOf(contract) {
+  if (contract.paymentType === 'installments') return contract.frequency || 'quarterly'
+  return contract.paymentType
+}
+function installmentCountForFrequency(frequency, durationMonths) {
+  const dur = durationMonths || 12
+  if (frequency === 'every-45-days') return Math.max(1, Math.ceil((dur * 30) / 45))
+  const freqMonths = FREQ_TO_MONTHS[frequency] || 3
+  return Math.max(1, Math.ceil(dur / freqMonths))
+}
+function stepDateByFrequency(startDate, frequency, times) {
+  const d = new Date(startDate)
+  if (frequency === 'every-45-days') {
+    d.setDate(d.getDate() + times * 45)
+  } else {
+    const freqMonths = FREQ_TO_MONTHS[frequency] || 3
+    d.setMonth(d.getMonth() + times * freqMonths)
+  }
+  return d
+}
+
 function getNextInstallment(contract) {
-  if (contract.paymentType !== 'installments') return null
+  if (contract.paymentType === 'full') return null
+  const freq = paymentFrequencyOf(contract)
   const total = contract.totalWithGST || contract.contractValue || 0
-  const dur = contract.durationMonths || 12
-  const freqMonths = FREQ_TO_MONTHS[contract.frequency] || 3
-  const count = Math.max(1, Math.ceil(dur / freqMonths))
+  const count = installmentCountForFrequency(freq, contract.durationMonths)
   const amount = Math.round(total / count)
   const startDate = contract.startDate ? new Date(contract.startDate + 'T00:00:00') : null
   const payments = [...(contract.paymentHistory || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
@@ -139,8 +163,7 @@ function getNextInstallment(contract) {
   if (nextIdx >= count) return null
   let dueDate = null
   if (startDate) {
-    const d = new Date(startDate)
-    d.setMonth(d.getMonth() + nextIdx * freqMonths)
+    const d = stepDateByFrequency(startDate, freq, nextIdx)
     dueDate = d.toISOString().split('T')[0]
   }
   return { amount, dueDate, installmentNo: nextIdx + 1, total: count }
@@ -152,7 +175,7 @@ const amcPaymentReminders = computed(() => {
   const out = []
   for (const c of amcContracts.value) {
     if (c.status === 'cancelled' || c.status === 'expired') continue
-    if (c.paymentType === 'installments') {
+    if (c.paymentType !== 'full') {
       const next = getNextInstallment(c)
       if (!next) continue
       const days = daysFromToday(next.dueDate)
@@ -164,7 +187,7 @@ const amcPaymentReminders = computed(() => {
         categoryLabel: 'AMC Payment',
         categoryColor: '#6366f1',
         title: c.projectId ? (getProjectName(c.projectId) || c.clientName) : c.clientName,
-        subtitle: `${c.contractNumber} · Inst. ${next.installmentNo}/${next.total} · ₹${Number(next.amount).toLocaleString('en-IN')}`,
+        subtitle: `${c.contractNumber} · Payment ${next.installmentNo}/${next.total} · ₹${Number(next.amount).toLocaleString('en-IN')}`,
         dueDate: next.dueDate,
         daysUntil: days,
         priority: days < 0 ? 'high' : days <= 3 ? 'high' : 'medium',

@@ -705,13 +705,7 @@
         <div class="form-group">
           <label class="label">Frequency</label>
           <select v-model="contractForm.frequency" class="input">
-            <option value="monthly">Monthly (every month)</option>
-            <option value="every-45-days">Every 45 Days</option>
-            <option value="bi-monthly">Every 2 Months</option>
-            <option value="quarterly">Quarterly (every 3 months)</option>
-            <option value="4-monthly">Every 4 Months</option>
-            <option value="half-yearly">Half-Yearly (every 6 months)</option>
-            <option value="yearly">Yearly</option>
+            <option v-for="f in FREQUENCY_OPTIONS" :key="f.value" :value="f.value">{{ f.label }}</option>
           </select>
         </div>
         <!-- Comprehensive / Non-Comprehensive toggle -->
@@ -753,7 +747,7 @@
           <label class="label">Payment Type</label>
           <select v-model="contractForm.paymentType" class="input">
             <option value="full">Full Payment</option>
-            <option value="installments">Installments</option>
+            <option v-for="f in FREQUENCY_OPTIONS" :key="f.value" :value="f.value">{{ f.label }}</option>
           </select>
         </div>
         <div class="form-group">
@@ -769,13 +763,13 @@
           <label class="label">Assigned Technicians (select multiple)</label>
           <TechnicianSelect v-model="contractForm.technicians" />
         </div>
-        <!-- Installment breakdown -->
-        <div v-if="!isTech && contractForm.paymentType === 'installments'" class="form-full glass" style="padding:16px;border-radius:12px;border-color:rgba(99,102,241,0.2);">
-          <div style="font-size:12px;color:var(--ct-accent);font-weight:600;margin-bottom:10px;">Installment Breakdown</div>
+        <!-- Payment schedule preview -->
+        <div v-if="!isTech && contractForm.paymentType !== 'full'" class="form-full glass" style="padding:16px;border-radius:12px;border-color:rgba(99,102,241,0.2);">
+          <div style="font-size:12px;color:var(--ct-accent);font-weight:600;margin-bottom:10px;">Payment Schedule ({{ installments.length }} payment{{ installments.length === 1 ? '' : 's' }})</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
             <div v-for="(inst, i) in installments" :key="i" class="glass" style="padding:10px;border-radius:8px;">
-              <div style="font-size:11px;color:var(--ct-muted);">Installment {{ i + 1 }}</div>
-              <div style="font-size:13px;color:var(--ct-accent);font-weight:600;margin-top:2px;">{{ formatCurrency(inst) }}</div>
+              <div style="font-size:11px;color:var(--ct-muted);">Payment {{ i + 1 }}<span v-if="inst.dueDate"> &bull; {{ formatDate(inst.dueDate) }}</span></div>
+              <div style="font-size:13px;color:var(--ct-accent);font-weight:600;margin-top:2px;">{{ formatCurrency(inst.amount) }}</div>
             </div>
           </div>
         </div>
@@ -1243,7 +1237,7 @@
     <div v-if="payTarget" style="display:flex;flex-direction:column;gap:16px;">
       <div style="padding:10px 14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.18);border-radius:10px;font-size:13px;color:#4ade80;">
         Logging payment for <strong>{{ payTarget.clientName || payTarget.id }}</strong>
-        <span v-if="payTarget.paymentType === 'installments'" style="font-size:11px;color:var(--ct-muted);margin-left:6px;">(Installment Contract)</span>
+        <span v-if="payTarget.paymentType !== 'full'" style="font-size:11px;color:var(--ct-muted);margin-left:6px;">({{ paymentFrequencyLabel(payTarget) }})</span>
       </div>
 
       <!-- Previous Payments at TOP -->
@@ -1325,18 +1319,18 @@
         </div>
       </div>
 
-      <!-- Installment selector (only for installment contracts) -->
-      <div v-if="payTarget.paymentType === 'installments'" style="padding:12px 14px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;">
-        <label class="label" style="margin-bottom:6px;">Select Installment *</label>
+      <!-- Payment schedule selector (only for scheduled-payment contracts) -->
+      <div v-if="payTarget.paymentType !== 'full'" style="padding:12px 14px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;">
+        <label class="label" style="margin-bottom:6px;">Select Payment *</label>
         <select v-model.number="payInstallmentIdx" class="input" @change="onInstallmentSelect">
-          <option value="-1">— Select installment —</option>
+          <option value="-1">— Select payment —</option>
           <option
             v-for="(inst, i) in payTargetInstallments"
             :key="i"
             :value="i"
             :disabled="inst.isPaid"
           >
-            Installment {{ i + 1 }} / {{ payTargetInstallments.length }}
+            Payment {{ i + 1 }} / {{ payTargetInstallments.length }}
             — {{ inst.dueDate || 'no date' }}
             — {{ formatCurrency(inst.amount) }}
             {{ inst.isPaid ? '(Paid)' : inst.isOverdue ? '(Overdue)' : '' }}
@@ -1461,6 +1455,28 @@
             </div>
           </div>
           <div v-else style="padding:8px 14px;font-size:11px;color:var(--ct-muted);">No detailed payment log available.</div>
+        </div>
+
+        <!-- Payment schedule -->
+        <div v-if="!isTech && viewTargetInstallments.length" style="background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.15);border-radius:10px;overflow:hidden;">
+          <div style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:rgba(99,102,241,0.06);border-bottom:1px solid rgba(99,102,241,0.1);">
+            <span style="font-size:11px;font-weight:700;color:var(--ct-accent);text-transform:uppercase;letter-spacing:.05em;">Payment Schedule &bull; {{ paymentFrequencyLabel(viewTarget) }}</span>
+            <span style="font-size:12px;color:var(--ct-muted);">{{ viewTargetInstallments.filter(i => i.isPaid).length }} / {{ viewTargetInstallments.length }} paid</span>
+          </div>
+          <div style="max-height:180px;overflow-y:auto;">
+            <div v-for="(inst, i) in viewTargetInstallments" :key="i" style="padding:8px 14px;border-bottom:1px solid rgba(99,102,241,0.06);display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <div style="font-size:12px;color:var(--ct-sub);">
+                Payment {{ i + 1 }} / {{ viewTargetInstallments.length }}
+                <span style="color:var(--ct-muted);"> &bull; {{ formatDate(inst.dueDate) }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;font-weight:600;color:var(--ct-accent);">{{ formatCurrency(inst.amount) }}</span>
+                <span :class="['badge', inst.isPaid ? 'badge-active' : inst.isOverdue ? 'badge-danger' : 'badge-warning']">
+                  {{ inst.isPaid ? 'Paid' : inst.isOverdue ? 'Overdue' : 'Pending' }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Monthly maintenance log history -->
@@ -2019,6 +2035,17 @@ const FREQ_TO_MONTHS = {
   '4-monthly': 4, 'half-yearly': 6, 'yearly': 12,
 }
 
+// Shared by both the Service Frequency and Payment Type dropdowns.
+const FREQUENCY_OPTIONS = [
+  { value: 'monthly',       label: 'Monthly (every month)' },
+  { value: 'every-45-days', label: 'Every 45 Days' },
+  { value: 'bi-monthly',    label: 'Every 2 Months' },
+  { value: 'quarterly',     label: 'Quarterly (every 3 months)' },
+  { value: '4-monthly',     label: 'Every 4 Months' },
+  { value: 'half-yearly',   label: 'Half-Yearly (every 6 months)' },
+  { value: 'yearly',        label: 'Yearly' },
+]
+
 // "Every 45 Days" doesn't divide evenly into calendar months, so its
 // installment count / due-date stepping uses actual day arithmetic instead
 // of the setMonth()-based stepping every other frequency uses.
@@ -2039,13 +2066,28 @@ function stepDateByFrequency(startDate, frequency, times) {
   return d
 }
 
+// Payment Type now doubles as the payment schedule's own frequency picker
+// ("Full Payment" plus the same frequency choices as Service Frequency).
+// Contracts saved before this change stored the generic value
+// "installments" instead, with the cadence coming from the contract's
+// service Frequency field — that legacy shape is preserved here so old
+// contracts keep computing the same schedule they always had.
+function paymentFrequencyOf(contract) {
+  if (contract.paymentType === 'installments') return contract.frequency || 'quarterly'
+  return contract.paymentType
+}
+function paymentFrequencyLabel(contract) {
+  const freq = paymentFrequencyOf(contract)
+  return FREQUENCY_OPTIONS.find(f => f.value === freq)?.label || freq
+}
+
 const allInstallments = computed(() => {
   const result = []
   for (const c of visibleContracts.value) {
     if (c.status === 'cancelled' || c.status === 'inactive') continue
-    if (c.paymentType !== 'installments') continue
+    if (c.paymentType === 'full') continue
     const total = c.totalWithGST || c.contractValue || 0
-    const count = installmentCountForFrequency(c.frequency, c.durationMonths)
+    const count = installmentCountForFrequency(paymentFrequencyOf(c), c.durationMonths)
     const amount = Math.round(total / count)
     const startDate = c.startDate ? new Date(c.startDate + 'T00:00:00') : null
     const paymentsWithIdx = (c.paymentHistory || [])
@@ -2054,7 +2096,7 @@ const allInstallments = computed(() => {
     for (let i = 0; i < count; i++) {
       let dueDate = null
       if (startDate) {
-        const d = stepDateByFrequency(startDate, c.frequency, i)
+        const d = stepDateByFrequency(startDate, paymentFrequencyOf(c), i)
         dueDate = d.toISOString().split('T')[0]
       }
       const paidEntry = paymentsWithIdx[i]
@@ -2095,17 +2137,21 @@ const filteredInstallments = computed(() => {
   return list
 })
 
-const payTargetInstallments = computed(() => {
-  if (!payTarget.value || payTarget.value.paymentType !== 'installments') return []
-  const total = payTarget.value.totalWithGST || payTarget.value.contractValue || 0
-  const count = installmentCountForFrequency(payTarget.value.frequency, payTarget.value.durationMonths)
+// Shared by the Log Payment modal (payTargetInstallments) and the contract
+// View modal (viewTargetInstallments) so the payment schedule cards look
+// identical in both places.
+function computePaymentSchedule(contract) {
+  if (!contract || contract.paymentType === 'full') return []
+  const freq = paymentFrequencyOf(contract)
+  const total = contract.totalWithGST || contract.contractValue || 0
+  const count = installmentCountForFrequency(freq, contract.durationMonths)
   const amount = Math.round(total / count)
-  const startDate = payTarget.value.startDate ? new Date(payTarget.value.startDate + 'T00:00:00') : null
-  const payments = [...(payTarget.value.paymentHistory || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+  const startDate = contract.startDate ? new Date(contract.startDate + 'T00:00:00') : null
+  const payments = [...(contract.paymentHistory || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   return Array.from({ length: count }, (_, i) => {
     let dueDate = null
     if (startDate) {
-      const d = stepDateByFrequency(startDate, payTarget.value.frequency, i)
+      const d = stepDateByFrequency(startDate, freq, i)
       dueDate = d.toISOString().split('T')[0]
     }
     const paidEntry = payments[i]
@@ -2117,7 +2163,10 @@ const payTargetInstallments = computed(() => {
       isOverdue: !paidEntry && !!dueDate && new Date(dueDate) < new Date(),
     }
   })
-})
+}
+
+const payTargetInstallments = computed(() => computePaymentSchedule(payTarget.value))
+const viewTargetInstallments = computed(() => computePaymentSchedule(viewTarget.value))
 
 // ── Contract PDF ──────────────────────────────────────────────────────
 const showContractPdfModal = ref(false)
@@ -2321,11 +2370,7 @@ function calcGST() {
   contractForm.value.totalWithGST = val + contractForm.value.gstAmount
 }
 
-const installments = computed(() => {
-  const total = contractForm.value.totalWithGST || 0
-  const count = installmentCountForFrequency(contractForm.value.frequency, contractForm.value.durationMonths)
-  return Array.from({ length: count }, () => Math.round(total / count))
-})
+const installments = computed(() => computePaymentSchedule(contractForm.value))
 
 function openAddContract() {
   editingContract.value = null
@@ -2654,7 +2699,7 @@ const cumulativeContracts = computed(() => {
   for (const c of visibleContracts.value) {
     if (c.status === 'cancelled' || c.status === 'inactive') continue
 
-    if (c.paymentType === 'installments') {
+    if (c.paymentType !== 'full') {
       const instItems = allInstallments.value.filter(i => i.contractId === c.id && i.dueDate?.startsWith(monthKey))
       for (const i of instItems) {
         result.push({
@@ -3574,7 +3619,7 @@ async function savePayment() {
     const existing = payTarget.value.paymentHistory || []
     const newEntry = {
       ...payForm.value,
-      ...(payTarget.value.paymentType === 'installments' && payInstallmentIdx.value >= 0
+      ...(payTarget.value.paymentType !== 'full' && payInstallmentIdx.value >= 0
         ? { installmentNo: payInstallmentIdx.value + 1 } : {}),
       loggedBy: authStore.user?.fullName || authStore.user?.username || 'User',
       loggedAt: new Date().toISOString(),
