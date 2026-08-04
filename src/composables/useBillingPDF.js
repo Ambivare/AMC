@@ -112,7 +112,7 @@ async function loadConfig() {
 
 const DOC_TITLE_MAP = {
   quotation: 'QUOTATION',
-  proforma: 'PROFORMA INVOICE',
+  proforma: 'BILL INVOICE',
   invoice: 'INVOICE',
   taxInvoice: 'TAX INVOICE',
   purchaseOrder: 'PURCHASE ORDER',
@@ -158,10 +158,23 @@ function getBOMTotal(row) {
   return (row.items || []).reduce((s, i) => s + (i.qty || 0) * (i.unitCost || 0), 0)
 }
 
+// Strips characters that are illegal (or awkward — "/" especially, since doc
+// numbers like "MQTN/26-27/0001/TE" would otherwise be read as path segments)
+// in a downloaded filename on both Android and desktop filesystems.
+function sanitizeForFilename(s) {
+  return String(s || '')
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 export function getDocMeta(row, templateKey) {
   const docTitle = DOC_TITLE_MAP[templateKey] || 'DOCUMENT'
   const docNumber = templateKey === 'bom' ? (row.bomNumber || 'BOM') : (row.docNumber || 'DOC')
-  const filename = `${docNumber}-${docTitle.replace(/\s+/g, '-')}.pdf`
+  const nameForFile = sanitizeForFilename(row.projectName || row.clientName || '')
+  const filename = [sanitizeForFilename(docNumber), nameForFile, docTitle.replace(/\s+/g, '-')]
+    .filter(Boolean).join('-') + '.pdf'
   return { docTitle, docNumber, filename }
 }
 

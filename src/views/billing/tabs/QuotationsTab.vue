@@ -54,7 +54,7 @@
               <FileDown v-else :size="12" />
             </button>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(row)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button class="btn-warning btn-sm" @click="convertToPI(row)" title="Convert to Proforma Invoice" :disabled="row.status === 'converted'">
+            <button class="btn-warning btn-sm" @click="convertToPI(row)" title="Convert to Bill Invoice" :disabled="row.status === 'converted'">
               <ArrowRight :size="12" />
             </button>
             <button class="btn-danger btn-sm" @click="confirmDel(row)"><Trash2 :size="12" /></button>
@@ -459,7 +459,7 @@
               <FileDown v-else :size="12" />
             </button>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
-            <button class="btn-warning btn-sm" @click="convertToPI(viewTarget)" title="Convert to Proforma Invoice" :disabled="viewTarget?.status === 'converted'">
+            <button class="btn-warning btn-sm" @click="convertToPI(viewTarget)" title="Convert to Bill Invoice" :disabled="viewTarget?.status === 'converted'">
               <ArrowRight :size="12" />
             </button>
             <button class="btn-danger btn-sm" @click="showViewModal = false; confirmDel(viewTarget)"><Trash2 :size="12" /></button>

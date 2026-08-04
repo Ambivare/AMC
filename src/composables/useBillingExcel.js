@@ -93,16 +93,29 @@ async function loadFooterImageBuffer() {
 // ─── Doc meta ─────────────────────────────────────────────────────────────────
 const DOC_TITLE_MAP = {
   quotation:     'QUOTATION',
-  proforma:      'PROFORMA INVOICE',
+  proforma:      'BILL INVOICE',
   taxInvoice:    'TAX INVOICE',
   purchaseOrder: 'PURCHASE ORDER',
   bom:           'BILL OF MATERIALS',
 }
 
+// Strips characters that are illegal (or awkward — "/" especially, since doc
+// numbers like "MQTN/26-27/0001/TE" would otherwise be read as path segments)
+// in a downloaded filename on both Android and desktop filesystems.
+function sanitizeForFilename(s) {
+  return String(s || '')
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 function getDocMeta(row, templateKey) {
   const docTitle  = DOC_TITLE_MAP[templateKey] || 'DOCUMENT'
   const docNumber = templateKey === 'bom' ? (row.bomNumber || 'BOM') : (row.docNumber || 'DOC')
-  const filename  = `${docNumber}-${docTitle.replace(/\s+/g, '-')}.xlsx`
+  const nameForFile = sanitizeForFilename(row.projectName || row.clientName || '')
+  const filename  = [sanitizeForFilename(docNumber), nameForFile, docTitle.replace(/\s+/g, '-')]
+    .filter(Boolean).join('-') + '.xlsx'
   return { docTitle, docNumber, filename }
 }
 

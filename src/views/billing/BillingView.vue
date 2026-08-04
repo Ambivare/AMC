@@ -21,7 +21,7 @@
       </button>
       <button :class="['tab-btn', activeTab === 'proforma' && 'active']" @click="activeTab = 'proforma'">
         <FileCheck :size="14" style="display:inline;margin-right:4px;" />
-        Proforma Invoices
+        Bill Invoices
       </button>
       <button :class="['tab-btn', activeTab === 'po' && 'active']" @click="activeTab = 'po'">
         <ShoppingCart :size="14" style="display:inline;margin-right:4px;" />

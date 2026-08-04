@@ -447,10 +447,19 @@ async function doDelete() {
   catch { ui.error('Failed to delete.') }
 }
 
+function sanitizeForFilename(s) {
+  return String(s || '')
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 async function resolveProposalPdfUrl(row) {
   const [headerImg, footerImg, stampImg] = await Promise.all([getHeaderImgDataUri(), getFooterImgDataUri(), getStampDataUri()])
   const html = renderInstallationProposalHtml(row, headerImg, footerImg, stampImg)
-  const filename = `${row.proposalNo || 'Installation-Proposal'}.pdf`
+  const nameForFile = sanitizeForFilename(row.projectName || getProjectName(row.projectId) || row.clientName || '')
+  const filename = [sanitizeForFilename(row.proposalNo || 'Installation-Proposal'), nameForFile].filter(Boolean).join('-') + '.pdf'
   const url = await generateOrGetPdf(row, 'installationProposal', html, filename)
   return { url, filename }
 }

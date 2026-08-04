@@ -706,6 +706,7 @@
           <label class="label">Frequency</label>
           <select v-model="contractForm.frequency" class="input">
             <option value="monthly">Monthly (every month)</option>
+            <option value="every-45-days">Every 45 Days</option>
             <option value="bi-monthly">Every 2 Months</option>
             <option value="quarterly">Quarterly (every 3 months)</option>
             <option value="4-monthly">Every 4 Months</option>
@@ -784,10 +785,14 @@
         </div>
       </div>
       <template #footer>
-        <button class="btn-secondary" @click="showContractModal = false">Cancel</button>
-        <button class="btn-primary" :disabled="saving" @click="saveContract">
-          <Save :size="14" /> {{ saving ? 'Saving…' : (editingContract ? 'Update Contract' : 'Create Contract') }}
-        </button>
+        <SwipeToConfirm
+          ref="contractSwipeRef"
+          style="width:100%;"
+          :label="editingContract ? 'Swipe to update contract' : 'Swipe to create contract'"
+          :done-label="editingContract ? 'Contract updated' : 'Contract created'"
+          :loading="saving"
+          @confirm="saveContract"
+        />
       </template>
     </AppModal>
 
@@ -1216,10 +1221,16 @@
         </div>
       </div>
       <template #footer>
-        <button class="btn-secondary" @click="showContractPdfModal = false">Cancel</button>
-        <button v-if="!contractPdfTarget?.contractPdfUrl || contractPdfEditEnabled" class="btn-primary" :disabled="contractPdfGenerating" @click="generateContractPdf">
-          <FilePlus2 :size="14" /> {{ contractPdfGenerating ? 'Generating PDF…' : (contractPdfTarget?.contractPdfUrl ? 'Regenerate & Save' : 'Generate Contract PDF') }}
-        </button>
+        <button v-if="contractPdfTarget?.contractPdfUrl && !contractPdfEditEnabled" class="btn-secondary" @click="showContractPdfModal = false">Close</button>
+        <SwipeToConfirm
+          v-if="!contractPdfTarget?.contractPdfUrl || contractPdfEditEnabled"
+          ref="contractPdfSwipeRef"
+          style="width:100%;"
+          :label="contractPdfTarget?.contractPdfUrl ? 'Swipe to regenerate & save' : 'Swipe to generate contract PDF'"
+          done-label="Contract PDF generated"
+          :loading="contractPdfGenerating"
+          @confirm="generateContractPdf"
+        />
       </template>
     </AppModal>
 
@@ -1706,6 +1717,7 @@ import {
   Camera as CameraIcon
 } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
+import SwipeToConfirm from '@/components/ui/SwipeToConfirm.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import TechnicianSelect from '@/components/ui/TechnicianSelect.vue'
@@ -2007,15 +2019,33 @@ const FREQ_TO_MONTHS = {
   '4-monthly': 4, 'half-yearly': 6, 'yearly': 12,
 }
 
+// "Every 45 Days" doesn't divide evenly into calendar months, so its
+// installment count / due-date stepping uses actual day arithmetic instead
+// of the setMonth()-based stepping every other frequency uses.
+function installmentCountForFrequency(frequency, durationMonths) {
+  const dur = durationMonths || 12
+  if (frequency === 'every-45-days') return Math.max(1, Math.ceil((dur * 30) / 45))
+  const freqMonths = FREQ_TO_MONTHS[frequency] || 3
+  return Math.max(1, Math.ceil(dur / freqMonths))
+}
+function stepDateByFrequency(startDate, frequency, times) {
+  const d = new Date(startDate)
+  if (frequency === 'every-45-days') {
+    d.setDate(d.getDate() + times * 45)
+  } else {
+    const freqMonths = FREQ_TO_MONTHS[frequency] || 3
+    d.setMonth(d.getMonth() + times * freqMonths)
+  }
+  return d
+}
+
 const allInstallments = computed(() => {
   const result = []
   for (const c of visibleContracts.value) {
     if (c.status === 'cancelled' || c.status === 'inactive') continue
     if (c.paymentType !== 'installments') continue
     const total = c.totalWithGST || c.contractValue || 0
-    const dur = c.durationMonths || 12
-    const freqMonths = FREQ_TO_MONTHS[c.frequency] || 3
-    const count = Math.max(1, Math.ceil(dur / freqMonths))
+    const count = installmentCountForFrequency(c.frequency, c.durationMonths)
     const amount = Math.round(total / count)
     const startDate = c.startDate ? new Date(c.startDate + 'T00:00:00') : null
     const paymentsWithIdx = (c.paymentHistory || [])
@@ -2024,8 +2054,7 @@ const allInstallments = computed(() => {
     for (let i = 0; i < count; i++) {
       let dueDate = null
       if (startDate) {
-        const d = new Date(startDate)
-        d.setMonth(d.getMonth() + i * freqMonths)
+        const d = stepDateByFrequency(startDate, c.frequency, i)
         dueDate = d.toISOString().split('T')[0]
       }
       const paidEntry = paymentsWithIdx[i]
@@ -2069,17 +2098,14 @@ const filteredInstallments = computed(() => {
 const payTargetInstallments = computed(() => {
   if (!payTarget.value || payTarget.value.paymentType !== 'installments') return []
   const total = payTarget.value.totalWithGST || payTarget.value.contractValue || 0
-  const dur = payTarget.value.durationMonths || 12
-  const freqMonths = FREQ_TO_MONTHS[payTarget.value.frequency] || 3
-  const count = Math.max(1, Math.ceil(dur / freqMonths))
+  const count = installmentCountForFrequency(payTarget.value.frequency, payTarget.value.durationMonths)
   const amount = Math.round(total / count)
   const startDate = payTarget.value.startDate ? new Date(payTarget.value.startDate + 'T00:00:00') : null
   const payments = [...(payTarget.value.paymentHistory || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   return Array.from({ length: count }, (_, i) => {
     let dueDate = null
     if (startDate) {
-      const d = new Date(startDate)
-      d.setMonth(d.getMonth() + i * freqMonths)
+      const d = stepDateByFrequency(startDate, payTarget.value.frequency, i)
       dueDate = d.toISOString().split('T')[0]
     }
     const paidEntry = payments[i]
@@ -2097,6 +2123,7 @@ const payTargetInstallments = computed(() => {
 const showContractPdfModal = ref(false)
 const contractPdfTarget = ref(null)
 const contractPdfGenerating = ref(false)
+const contractPdfSwipeRef = ref(null)
 const contractPdfEditEnabled = ref(false)
 const contractPdfForm = ref({
   date: new Date().toISOString().slice(0, 10),
@@ -2219,6 +2246,13 @@ function formatCurrency(val) {
   if (!val && val !== 0) return '—'
   return '₹' + Number(val).toLocaleString('en-IN')
 }
+function sanitizeForFilename(s) {
+  return String(s || '')
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
 function isExpiring(contract) {
   if (!contract.endDate || effectiveStatus(contract) !== 'active') return false
   const end = contract.endDate.toDate ? contract.endDate.toDate() : new Date(contract.endDate)
@@ -2289,9 +2323,7 @@ function calcGST() {
 
 const installments = computed(() => {
   const total = contractForm.value.totalWithGST || 0
-  const dur = contractForm.value.durationMonths || 12
-  const freqMonths = FREQ_TO_MONTHS[contractForm.value.frequency] || 3
-  const count = Math.max(1, Math.ceil(dur / freqMonths))
+  const count = installmentCountForFrequency(contractForm.value.frequency, contractForm.value.durationMonths)
   return Array.from({ length: count }, () => Math.round(total / count))
 })
 
@@ -2316,9 +2348,12 @@ function openEditContract(contract) {
   showContractModal.value = true
 }
 
+const contractSwipeRef = ref(null)
+
 async function saveContract() {
   if (!contractForm.value.clientName || !contractForm.value.startDate) {
     ui.error('Client name and start date are required.')
+    contractSwipeRef.value?.reset()
     return
   }
   if (contractForm.value.projectId) {
@@ -2328,6 +2363,7 @@ async function saveContract() {
     )
     if (dup) {
       ui.error(`A contract already exists for this project (${dup.contractNumber || dup.id}). Edit the existing contract instead.`)
+      contractSwipeRef.value?.reset()
       return
     }
   }
@@ -2345,6 +2381,7 @@ async function saveContract() {
     showContractModal.value = false
   } catch (e) {
     ui.error('Failed to save contract.')
+    contractSwipeRef.value?.reset()
   } finally {
     saving.value = false
   }
@@ -2485,7 +2522,7 @@ async function generateContractPdf() {
     }
 
     const contractNo = row?.contractNumber || row?.id || 'CONTRACT'
-    const filename = `${contractNo}-AMC-CONTRACT.pdf`
+    const filename = [sanitizeForFilename(contractNo), sanitizeForFilename(row?.clientName), 'AMC-CONTRACT'].filter(Boolean).join('-') + '.pdf'
 
     const retrieveUrl = await convertHtmlToPdf(html, filename, contractNo)
 
@@ -2504,6 +2541,7 @@ async function generateContractPdf() {
     ui.success('Contract PDF saved and download started.')
   } catch (e) {
     ui.error('Failed to generate contract PDF: ' + (e?.message || e))
+    contractPdfSwipeRef.value?.reset()
   } finally {
     contractPdfGenerating.value = false
   }
@@ -2723,11 +2761,61 @@ const monthNames = [
 
 const currentYear = new Date().getFullYear()
 
+// Builds the list of due service periods for a contract, spaced according
+// to its own frequency — previously every contract showed all 12 calendar
+// months of the current year regardless of frequency, so a quarterly or
+// half-yearly contract looked identical to a monthly one. Every period
+// still keys on a calendar month ("YYYY-MM") so it stays compatible with
+// how visit logs are saved/matched (see saveLog's monthKey) — safe even for
+// "every 45 days" since 45 days always exceeds the longest possible month
+// (31 days), so no two consecutive 45-day periods can ever start in the
+// same calendar month.
+function contractServicePeriods(contract) {
+  if (!contract?.startDate) return []
+  const start = new Date(contract.startDate + 'T00:00:00')
+  const end = contract.endDate ? new Date(contract.endDate + 'T00:00:00') : null
+  const freq = contract.frequency || 'monthly'
+  const periods = []
+  const MAX_PERIODS = 60
+
+  if (freq === 'every-45-days') {
+    let cursor = new Date(start)
+    while ((!end || cursor <= end) && periods.length < MAX_PERIODS) {
+      const y = cursor.getFullYear()
+      const m = cursor.getMonth() + 1
+      periods.push({
+        key: `${y}-${String(m).padStart(2, '0')}`,
+        value: m,
+        label: cursor.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      })
+      cursor.setDate(cursor.getDate() + 45)
+    }
+  } else {
+    const stepMonths = FREQ_TO_MONTHS[freq] || 1
+    let cursor = new Date(start.getFullYear(), start.getMonth(), 1)
+    const endCursor = end
+      ? new Date(end.getFullYear(), end.getMonth(), 1)
+      : new Date(cursor.getFullYear(), cursor.getMonth() + 11, 1)
+    while (cursor <= endCursor && periods.length < MAX_PERIODS) {
+      const y = cursor.getFullYear()
+      const m = cursor.getMonth() + 1
+      periods.push({
+        key: `${y}-${String(m).padStart(2, '0')}`,
+        value: m,
+        label: cursor.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
+      })
+      cursor.setMonth(cursor.getMonth() + stepMonths)
+    }
+  }
+  return periods
+}
+
 const maintenanceMonths = computed(() => {
-  return monthNames.map(m => {
-    const key = `${currentYear}-${String(m.value).padStart(2, '0')}`
-    const logs = monthlyLogs.value.filter(l => l.contractId === selectedContractId.value && l.monthKey === key)
-    return { ...m, key, done: logs.length > 0, logs, log: logs[0] || null }
+  const contract = selectedContract.value
+  if (!contract) return []
+  return contractServicePeriods(contract).map(p => {
+    const logs = monthlyLogs.value.filter(l => l.contractId === selectedContractId.value && l.monthKey === p.key)
+    return { ...p, done: logs.length > 0, logs, log: logs[0] || null }
   })
 })
 
@@ -3162,7 +3250,7 @@ async function generateRenewalPdf() {
     }
 
     const contractNo = contract?.contractNumber || contract?.id || 'CONTRACT'
-    const filename = `${contractNo}-AMC-RENEWAL.pdf`
+    const filename = [sanitizeForFilename(contractNo), sanitizeForFilename(contract?.clientName), 'AMC-RENEWAL'].filter(Boolean).join('-') + '.pdf'
 
     const retrieveUrl = await convertHtmlToPdf(html, filename, contractNo)
     // Save renewalPdfUrl on the contract
@@ -3307,7 +3395,7 @@ async function exportContractPDF(contract, saveMode = 'share') {
     }
 
     _drawFooter(doc, { company: company.name, title: 'AMC Contract', note: 'Internal Document · Confidential · Not for External Distribution' })
-    const contractFilename = `AMC-Contract-${(contract.contractNumber || contract.clientName || 'contract').replace(/\s+/g, '_')}.pdf`
+    const contractFilename = [sanitizeForFilename(contract.contractNumber || 'contract'), sanitizeForFilename(contract.clientName), 'AMC-Contract'].filter(Boolean).join('-') + '.pdf'
     if (saveMode === 'downloads') {
       await savePDFToDownloads(doc, contractFilename, ui)
     } else {
@@ -3409,7 +3497,7 @@ async function emailContract(contract) {
     _drawFooter(doc, { company: company.name, title: 'AMC Contract', note: 'Confidential — For client use only' })
 
     amcEmailPdfBuffer.value = doc.output('arraybuffer')
-    amcEmailPdfFilename.value = `AMC-Contract-${(contract.contractNumber || contract.clientName || 'contract').replace(/\s+/g, '_')}.pdf`
+    amcEmailPdfFilename.value = [sanitizeForFilename(contract.contractNumber || 'contract'), sanitizeForFilename(contract.clientName), 'AMC-Contract'].filter(Boolean).join('-') + '.pdf'
   } catch (e) {
     ui.error('Failed to generate contract PDF: ' + e.message)
     showAmcEmailModal.value = false

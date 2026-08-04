@@ -156,7 +156,7 @@ const form = ref({
 
 const DOC_LABEL_MAP = {
   quotation:     'Quotation',
-  proforma:      'Proforma Invoice',
+  proforma:      'Bill Invoice',
   taxInvoice:    'Tax Invoice',
   purchaseOrder: 'Purchase Order',
   invoice:       'Invoice',

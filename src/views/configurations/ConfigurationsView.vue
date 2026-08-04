@@ -878,7 +878,7 @@ const ALL_NAV_TABS = [
 
 const templateTypes = [
   { key: 'quotation',     label: 'Quotation' },
-  { key: 'proforma',     label: 'Proforma Invoice' },
+  { key: 'proforma',     label: 'Bill Invoice' },
   { key: 'invoice',      label: 'Invoice' },
   { key: 'taxInvoice',   label: 'Tax Invoice' },
   { key: 'purchaseOrder', label: 'Purchase Order' },
@@ -1318,7 +1318,7 @@ function defaultQuotationTemplate() {
 
 function defaultProformaTemplate() {
   return defaultQuotationTemplate()
-    .replace('<div class="title-bar">QUOTATION</div>', '<div class="title-bar">PROFORMA INVOICE</div>')
+    .replace('<div class="title-bar">QUOTATION</div>', '<div class="title-bar">BILL INVOICE</div>')
     .replace('<strong>QUOTATION NO:</strong>', '<strong>PROFORMA NO:</strong>')
 }
 

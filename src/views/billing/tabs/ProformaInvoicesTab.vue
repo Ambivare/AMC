@@ -4,7 +4,7 @@
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center;">
       <div class="search-box" style="flex:1;min-width:220px;">
         <Search :size="14" class="search-icon" />
-        <input v-model="search" class="input" placeholder="Search proforma invoices…" />
+        <input v-model="search" class="input" placeholder="Search bill invoices…" />
       </div>
       <select v-model="statusFilter" class="input" style="width:175px;">
         <option value="">All Statuses</option>
@@ -19,7 +19,7 @@
         <option value="paid">Paid</option>
       </select>
       <button class="btn-primary" @click="openAdd">
-        <Plus :size="16" /> New Proforma Invoice
+        <Plus :size="16" /> New Bill Invoice
       </button>
     </div>
 
@@ -30,7 +30,7 @@
       :total="filtered.length"
       :page="page"
       :pageSize="pageSize"
-      empty-text="No proforma invoices found."
+      empty-text="No bill invoices found."
       :on-row-click="openView"
       @page="page = $event"
     >
@@ -52,7 +52,7 @@
         <td @click.stop>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn-secondary btn-sm" @click="openEdit(row)"><Pencil :size="12" /></button>
-            <PDFDownloadButton class="btn-success btn-sm" :row="resolveRow(row)" template-key="proforma" title="Download Proforma Invoice PDF"><Download :size="12" /> PI</PDFDownloadButton>
+            <PDFDownloadButton class="btn-success btn-sm" :row="resolveRow(row)" template-key="proforma" title="Download Bill Invoice PDF"><Download :size="12" /> PI</PDFDownloadButton>
             <PDFDownloadButton class="btn-info btn-sm" :row="resolveRow(row)" template-key="invoice" title="Download Invoice PDF" style="background:rgba(99,102,241,0.12);color:#818cf8;border:1px solid rgba(99,102,241,0.25);"><Download :size="12" /> INV</PDFDownloadButton>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(row)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
             <button class="btn-warning btn-sm" @click="openPayment(row)" title="Record Payment"><CreditCard :size="12" /></button>
@@ -66,7 +66,7 @@
     </DataTable>
 
     <!-- Add/Edit Modal -->
-    <AppModal v-model="showModal" :title="editing ? 'Edit Proforma Invoice' : 'New Proforma Invoice'" width="800px">
+    <AppModal v-model="showModal" :title="editing ? 'Edit Bill Invoice' : 'New Bill Invoice'" width="800px">
       <div class="form-grid" style="margin-bottom:20px;">
         <!-- Project Link Toggle -->
         <div class="form-group form-full" style="margin-bottom:4px;">
@@ -314,10 +314,10 @@
       </template>
     </AppModal>
 
-    <ConfirmDialog ref="confirmRef" title="Delete Proforma Invoice" @confirm="doDelete" />
+    <ConfirmDialog ref="confirmRef" title="Delete Bill Invoice" @confirm="doDelete" />
 
-    <!-- Proforma Invoice Detail View Modal -->
-    <AppModal v-model="showViewModal" :title="viewTarget ? (viewTarget.docNumber || 'Proforma Invoice') : 'Proforma Invoice'" width="580px">
+    <!-- Bill Invoice Detail View Modal -->
+    <AppModal v-model="showViewModal" :title="viewTarget ? (viewTarget.docNumber || 'Bill Invoice') : 'Bill Invoice'" width="580px">
       <template v-if="viewTarget">
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="padding:14px 16px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;">
@@ -398,7 +398,7 @@
         <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
           <button class="btn-secondary" @click="showViewModal = false">Close</button>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
-            <PDFDownloadButton v-if="viewTarget" class="btn-success btn-sm" :row="resolveRow(viewTarget)" template-key="proforma" title="Download Proforma Invoice PDF"><Download :size="12" /> PI</PDFDownloadButton>
+            <PDFDownloadButton v-if="viewTarget" class="btn-success btn-sm" :row="resolveRow(viewTarget)" template-key="proforma" title="Download Bill Invoice PDF"><Download :size="12" /> PI</PDFDownloadButton>
             <PDFDownloadButton v-if="viewTarget" class="btn-info btn-sm" :row="resolveRow(viewTarget)" template-key="invoice" title="Download Invoice PDF" style="background:rgba(99,102,241,0.12);color:#818cf8;border:1px solid rgba(99,102,241,0.25);"><Download :size="12" /> INV</PDFDownloadButton>
             <button class="btn-excel btn-sm" @click="downloadRowExcel(viewTarget)" title="Download Excel"><FileSpreadsheet :size="12" /></button>
             <button class="btn-warning btn-sm" @click="showViewModal = false; openPayment(viewTarget)" title="Record Payment"><CreditCard :size="12" /></button>
@@ -577,11 +577,11 @@ async function save() {
   try {
     const data = { ...form.value, updatedAt: new Date() }
     if (editing.value) {
-      await edit(editing.value.id, data, { action: 'updated', module: 'proformaInvoices', tab: 'Billing', summary: `Updated Proforma Invoice ${data.docNumber} for ${data.clientName}`, details: { docNumber: data.docNumber, clientName: data.clientName, amount: data.total } })
-      ui.success('Proforma invoice updated.')
+      await edit(editing.value.id, data, { action: 'updated', module: 'proformaInvoices', tab: 'Billing', summary: `Updated Bill Invoice ${data.docNumber} for ${data.clientName}`, details: { docNumber: data.docNumber, clientName: data.clientName, amount: data.total } })
+      ui.success('Bill invoice updated.')
     } else {
       data.createdAt = new Date()
-      await add(data, { action: 'created', module: 'proformaInvoices', tab: 'Billing', summary: `Created Proforma Invoice ${data.docNumber} for ${data.clientName}`, details: { docNumber: data.docNumber, clientName: data.clientName, amount: data.total } })
+      await add(data, { action: 'created', module: 'proformaInvoices', tab: 'Billing', summary: `Created Bill Invoice ${data.docNumber} for ${data.clientName}`, details: { docNumber: data.docNumber, clientName: data.clientName, amount: data.total } })
       // Only mark the source quotation as converted once the PI actually exists —
       // marking it earlier (when the convert button is first clicked) left
       // quotations stuck showing "converted" with no PI ever created if this
@@ -590,7 +590,7 @@ async function save() {
         try { await editQuotation(data.quotationId, { status: 'converted', updatedAt: new Date() }) }
         catch (e) { console.error('[ProformaInvoices] Failed to mark source quotation converted:', e) }
       }
-      ui.success('Proforma invoice created.')
+      ui.success('Bill invoice created.')
     }
     showModal.value = false
   } catch { ui.error('Failed to save.') }
@@ -650,7 +650,7 @@ const confirmRef = ref(null)
 const deleteTarget = ref(null)
 function confirmDel(row) { deleteTarget.value = row; confirmRef.value?.open(`Delete ${row.docNumber}? This cannot be undone.`) }
 async function doDelete() {
-  try { await del(deleteTarget.value.id, { action: 'deleted', module: 'proformaInvoices', tab: 'Billing', summary: 'Deleted proforma invoice', details: { id: deleteTarget.value.id } }); ui.success('Proforma invoice deleted.') }
+  try { await del(deleteTarget.value.id, { action: 'deleted', module: 'proformaInvoices', tab: 'Billing', summary: 'Deleted bill invoice', details: { id: deleteTarget.value.id } }); ui.success('Bill invoice deleted.') }
   catch { ui.error('Failed to delete.') }
 }
 
