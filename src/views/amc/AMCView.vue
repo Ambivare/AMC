@@ -671,8 +671,12 @@
           <input v-model="contractForm.contractNumber" class="input" placeholder="AMC-001" />
         </div>
         <div class="form-group">
-          <label class="label">Client Name *</label>
-          <input v-model="contractForm.clientName" class="input" placeholder="Client / Company name" :readonly="amcUseProject && !!contractForm.projectId" :style="amcUseProject && contractForm.projectId ? 'opacity:.8;' : ''" />
+          <label class="label">Site Name *</label>
+          <input v-model="contractForm.clientName" class="input" placeholder="Site / Building name" :readonly="amcUseProject && !!contractForm.projectId" :style="amcUseProject && contractForm.projectId ? 'opacity:.8;' : ''" />
+        </div>
+        <div class="form-group">
+          <label class="label">Client Name</label>
+          <input v-model="contractForm.clientContactName" class="input" placeholder="Client / Company name (optional)" />
         </div>
         <div class="form-group">
           <label class="label">Client Phone</label>
@@ -2343,7 +2347,7 @@ const saving = ref(false)
 const defaultContractForm = () => ({
   projectId: '',
   liftSelection: { buildingIndexes: [], wingKeys: [], liftIds: [], buildings: [], wings: [] },
-  contractNumber: '', clientName: '', clientPhone: '', clientEmail: '', clientAddress: '',
+  contractNumber: '', clientName: '', clientContactName: '', clientPhone: '', clientEmail: '', clientAddress: '',
   startDate: '', endDate: '', durationMonths: 12,
   contractValue: 0, gstPercent: 18, gstAmount: 0, totalWithGST: 0,
   frequency: 'monthly', paymentType: 'full',
