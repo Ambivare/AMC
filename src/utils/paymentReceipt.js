@@ -60,7 +60,8 @@ export async function generatePaymentReceiptPdf({
   const addrLines = doc.splitTextToSize(addr || '', 110)
   let ty = 16
   addrLines.slice(0, 2).forEach(l => { doc.text(l, MR - 3, ty, { align: 'right' }); ty += 3.4 })
-  if (company.phone) doc.text(`Mob: ${company.phone}`, MR - 3, ty, { align: 'right' })
+  const contactBits = [company.phone && `Mob: ${company.phone}`, company.email].filter(Boolean)
+  if (contactBits.length) doc.text(contactBits.join('  |  '), MR - 3, ty, { align: 'right' })
 
   let y = 24
   doc.setDrawColor(15, 23, 42).setLineWidth(0.3).line(ML, y, MR, y)

@@ -428,6 +428,8 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   const docTotal = row.total || 0
   const lifts = row.numberOfLifts ? (Number(row.numberOfLifts) || 1) : 1
   const grandTotal = lifts > 1 ? (Number(row.grandTotal) || docTotal * lifts) : docTotal
+  const gstPercentNum = Number(row.gstPercent) || 0
+  const subtotalBeforeGst = row.discountedSubtotal ?? row.subtotal ?? (docTotal - (row.gstAmount || 0))
   const addrLine1 = company.addressLine1 || company.address || ''
   const addrLine2 = company.addressLine2 || ''
   const cityLine = [company.city, company.state, company.pincode].filter(Boolean).join(', ')
@@ -483,7 +485,7 @@ function buildQuotationStyleHtml(row, templateKey, company) {
         ${addrLine1 ? `${addrLine1}<br>` : ''}
         ${addrLine2 ? `${addrLine2}<br>` : ''}
         ${cityLine ? `${cityLine}<br>` : ''}
-        <span class="co-contact-blue">Mob: ${company.phone || ''} &nbsp;|&nbsp; info@tabelevators.in</span>
+        <span class="co-contact-blue">Mob: ${company.phone || ''} &nbsp;|&nbsp; ${company.email || 'info@tabelevators.in'}</span>
       </div>
     </div>
     <div class="title-bar">${docTitle}</div>
@@ -515,6 +517,10 @@ function buildQuotationStyleHtml(row, templateKey, company) {
       </tr></thead>
       <tbody>${buildItemsHtml(row, templateKey)}</tbody>
       <tfoot>
+        ${gstPercentNum > 0 ? `
+        <tr><td colspan="5" style="text-align:right;font-weight:600;border:1px solid #000;padding:5px 8px;">SUBTOTAL</td><td style="text-align:right;font-weight:600;border:1px solid #000;padding:5px 8px;">${fc(subtotalBeforeGst)}</td></tr>
+        <tr><td colspan="5" style="text-align:right;font-weight:600;border:1px solid #000;padding:5px 8px;">GST (${gstPercentNum}%)</td><td style="text-align:right;font-weight:600;border:1px solid #000;padding:5px 8px;">${fc(row.gstAmount || 0)}</td></tr>
+        ` : ''}
         <tr><td colspan="5" style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">TOTAL</td><td style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">${fc(docTotal)}</td></tr>
         <tr><td colspan="5" style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">BALANCE TOTAL</td><td style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">${fc(grandTotal)}</td></tr>
       </tfoot>
@@ -566,8 +572,8 @@ function buildFallbackHtml(row, templateKey, company) {
     <tr><td>Subtotal</td><td style="text-align:right;">${fc(row.subtotal)}</td></tr>
     ${hasDiscount ? `<tr><td style="color:#b45309;">Discount${row.discountType === 'percent' ? ` (${row.discountValue}%)` : ''}</td><td style="text-align:right;color:#b45309;">− ${fc(row.discountAmount)}</td></tr>
     <tr><td>After Discount</td><td style="text-align:right;">${fc(discountedSub)}</td></tr>` : ''}
-    <tr><td>CGST (${gst / 2}%)</td><td style="text-align:right;">${fc(half)}</td></tr>
-    <tr><td>SGST (${gst / 2}%)</td><td style="text-align:right;">${fc(half)}</td></tr>
+    ${gst > 0 ? `<tr><td>CGST (${gst / 2}%)</td><td style="text-align:right;">${fc(half)}</td></tr>
+    <tr><td>SGST (${gst / 2}%)</td><td style="text-align:right;">${fc(half)}</td></tr>` : ''}
     ${fbLifts > 1 ? `<tr><td style="color:#64748b;font-style:italic;">Per Lift Total</td><td style="text-align:right;color:#64748b;">${fc(docTotal)}</td></tr>
     <tr><td colspan="2" style="text-align:right;color:#64748b;font-style:italic;">× ${fbLifts} Lifts</td></tr>` : ''}
     <tr class="grand-total"><td>GRAND TOTAL</td><td style="text-align:right;">${fc(fbGrandTotal)}</td></tr>`
@@ -624,7 +630,7 @@ function buildFallbackHtml(row, templateKey, company) {
     ${addrLine1 ? `<div class="company-info">${addrLine1}</div>` : ''}
     ${addrLine2 ? `<div class="company-info">${addrLine2}</div>` : ''}
     ${cityLine ? `<div class="company-info">${cityLine}</div>` : ''}
-    <div class="company-info company-info-blue">Mob: ${company.phone || ''} | info@tabelevators.in</div>
+    <div class="company-info company-info-blue">Mob: ${company.phone || ''} | ${company.email || 'info@tabelevators.in'}</div>
     <div class="doc-title">${docTitle}</div>
     <div class="doc-meta">No: ${docNumber}</div>
     <div class="doc-meta">Date: ${formatDate(row.date || row.createdAt)}</div>

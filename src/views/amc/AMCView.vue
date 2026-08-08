@@ -3249,6 +3249,7 @@ async function generateRenewalPdf() {
     }
     const contract = renewTarget.value
     const f = renewForm.value
+    const company = ctx?.company || {}
 
     // Format dates helper
     const fmtDate = (iso) => {
@@ -3261,6 +3262,15 @@ async function generateRenewalPdf() {
     const letterDateStr = fmtDate(f.letterDate)
 
     let html = template
+    // Company placeholders — this template is user-authored in Configurations
+    // and follows the same {{company.*}} convention as the main AMC Contract
+    // template, but was never actually filled in here, so a template using
+    // them printed the literal "{{company.email}}" text (or nothing).
+    html = html.replaceAll('{{company.logo}}', company.logoUrl ? `<img src="${company.logoUrl}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;">` : '')
+    html = html.replaceAll('{{company.name}}', company.name || '')
+    html = html.replaceAll('{{company.address}}', [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', '))
+    html = html.replaceAll('{{company.phone}}', company.phone || '')
+    html = html.replaceAll('{{company.email}}', company.email || '')
     // Cover letter placeholders
     html = html.replaceAll('{{LETTER_DATE}}', letterDateStr)
     html = html.replaceAll('{{CLIENT_NAME}}', contract?.clientName || '')

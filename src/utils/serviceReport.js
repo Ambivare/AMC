@@ -82,6 +82,13 @@ export async function generateServiceReportPdf({
   const doc = new jsPDF({ unit: 'mm', format: [PW, PH], orientation: 'landscape' })
   const CW = MR - ML
   const stamp = await getStampDataUri()
+  // Same indigo used across the AMC Contract PDF — kept to a thin top accent
+  // bar and the checklist header here, so the report still reads mostly as
+  // the plain black/white printed stationery it's modelled on.
+  const AMC_INDIGO = [99, 102, 241]
+
+  // Thin brand accent bar across the very top of the page
+  doc.setFillColor(...AMC_INDIGO).rect(0, 0, PW, 2, 'F')
 
   // Logo top-right
   if (company.logoUrl?.startsWith?.('data:image')) {
@@ -93,25 +100,27 @@ export async function generateServiceReportPdf({
   doc.setFont('helvetica', 'bold').setFontSize(20).setTextColor(15, 23, 42)
   doc.text(company.name || 'TAB Elevators', ML, y)
 
-  // Company address / phone / email — left, stacked below the name (logo stays
+  // Company address / phone — left, stacked below the name (logo stays
   // isolated in its own top-right corner so long addresses can never collide with it).
-  // Hardcoded — do not source from Configurations (unreliable in the field).
+  // Address/phone hardcoded — do not source from Configurations (unreliable in
+  // the field). Email DOES come from Configurations (falls back to the old
+  // default only if nothing is saved there) so it stays correct if it ever changes.
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(71, 85, 105)
   const addr = 'S.No. 30/14, Uniti Industries, Behind Panchamukhi Hanuman Mandir, Narhe Dhayari Road, Narhe, Pune, Maharashtra 411041'
   y += 5
   const addrLines = doc.splitTextToSize(addr, 190)
   addrLines.slice(0, 2).forEach(l => { doc.text(l, ML, y); y += 3.6 })
-  const contactLine = 'Mob: 9545802273 / 9765569919   |   tabelevatorsandsystems@gmail.com'
+  const contactLine = `Mob: 9545802273 / 9765569919   |   ${company.email || 'tabelevatorsandsystems@gmail.com'}`
   doc.text(contactLine, ML, y); y += 3.6
 
   y += 3
-  doc.setDrawColor(15, 23, 42).setLineWidth(0.4).line(ML, y, MR, y)
+  doc.setDrawColor(...AMC_INDIGO).setLineWidth(0.6).line(ML, y, MR, y)
   y += 6
 
   // Title bar
   doc.setFont('helvetica', 'bold').setFontSize(14).setTextColor(15, 23, 42)
   doc.text('SERVICE REPORT', PW / 2, y, { align: 'center' })
-  doc.setFontSize(11).setTextColor(220, 38, 38)
+  doc.setFontSize(11).setTextColor(...AMC_INDIGO)
   if (reportNo) doc.text(String(reportNo), MR, y, { align: 'right' })
   y += 5
   doc.setDrawColor(203, 213, 225).setLineWidth(0.2).line(ML, y, MR, y)
@@ -147,7 +156,7 @@ export async function generateServiceReportPdf({
     theme: 'grid',
     margin: { left: ML, right: ML },
     styles: { fontSize: 9.8, cellPadding: 2.4, textColor: [30, 41, 59], lineColor: [148, 163, 184], lineWidth: 0.15 },
-    headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold', fontSize: 9.5, halign: 'left' },
+    headStyles: { fillColor: AMC_INDIGO, textColor: 255, fontStyle: 'bold', fontSize: 9.5, halign: 'left' },
     columnStyles: {
       0: { cellWidth: 74 },
       1: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
