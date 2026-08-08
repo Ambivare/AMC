@@ -9,7 +9,7 @@
         </h1>
         <p class="page-sub">Contracts that keep every lift running on schedule.</p>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div v-if="!isTech" style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn-secondary btn-sm" @click="triggerExport('pdf')"><FileDown :size="14" /> PDF</button>
         <button class="btn-secondary btn-sm" @click="triggerExport('excel')"><FileText :size="14" /> Excel</button>
         <button v-if="authStore.can('canCreateService')" class="btn-primary" @click="openAddContract">
@@ -18,8 +18,9 @@
       </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs-nav" style="margin-bottom:24px;">
+    <!-- Tabs — technicians only ever see Monthly Maintenance, so there's
+         nothing for them to switch between. -->
+    <div v-if="!isTech" class="tabs-nav" style="margin-bottom:24px;">
       <button :class="['tab-btn', activeTab === 'contracts' && 'active']" @click="activeTab = 'contracts'">
         <FileText :size="14" /> Contracts
         <span class="badge badge-info" style="margin-left:4px;">{{ contracts.length }}</span>
@@ -127,9 +128,9 @@
 
     <!-- ── MONTHLY MAINTENANCE TAB ─────────────────────────────── -->
     <div v-if="activeTab === 'monthly'">
-      <!-- Sub-tab nav -->
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-        <button v-if="isAdmin || isReception" :class="['btn-sm', monthlySubTab === 'overview' ? 'btn-primary' : 'btn-secondary']" @click="monthlySubTab = 'overview'">
+      <!-- Sub-tab nav — technicians only ever have "Contracts" (no Overview), so there's nothing to switch between. -->
+      <div v-if="isAdmin || isReception" style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+        <button :class="['btn-sm', monthlySubTab === 'overview' ? 'btn-primary' : 'btn-secondary']" @click="monthlySubTab = 'overview'">
           Overview
         </button>
         <button :class="['btn-sm', monthlySubTab === 'contracts' ? 'btn-primary' : 'btn-secondary']" @click="monthlySubTab = 'contracts'">
@@ -2208,8 +2209,12 @@ function amcDelayCloseDropdown() {
 }
 
 // ── Tabs ─────────────────────────────────────────────────────────────
-const activeTab = ref('contracts')
-useTabBackHandler(activeTab, 'contracts')
+// Technicians only have the "amc" tab in their nav at all, and within it
+// they only need Monthly Maintenance to log visits — everything else
+// (Contracts, Renewals, Payments, Cumulative Payments) is hidden for them.
+const DEFAULT_AMC_TAB = authStore.role === 'technician' ? 'monthly' : 'contracts'
+const activeTab = ref(DEFAULT_AMC_TAB)
+useTabBackHandler(activeTab, DEFAULT_AMC_TAB)
 
 // Auto-open from Reminders
 watch([() => ui.pendingAutoOpen, contracts], () => {

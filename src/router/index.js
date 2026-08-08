@@ -25,7 +25,7 @@ const routes = [
     component: () => import('@/components/layout/AppShell.vue'),
     meta: { requiresAuth: true },
     children: [
-      { path: '', redirect: () => localStorage.getItem('me_pinned_tab') || '/dashboard' },
+      { path: '', redirect: () => localStorage.getItem('me_pinned_tab') || useAuthStore().homePath },
       { path: 'dashboard',       name: 'Dashboard',       component: () => import('@/views/dashboard/DashboardView.vue'),           meta: { tab: 'dashboard' } },
       { path: 'reminders',       name: 'Reminders',       component: () => import('@/views/reminders/RemindersView.vue'),           meta: { tab: 'reminders' } },
       { path: 'maintenance',     name: 'Maintenance',     component: () => import('@/views/maintenance/MaintenanceView.vue'),       meta: { tab: 'maintenance' } },
@@ -55,7 +55,7 @@ router.beforeEach((to, from, next) => {
   if (!auth.isLoggedIn) return next('/login')
 
   if (to.meta.tab && !auth.canAccess(to.meta.tab)) {
-    return next('/dashboard')
+    return next(auth.homePath)
   }
 
   next()

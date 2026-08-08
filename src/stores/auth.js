@@ -19,7 +19,10 @@ export const ROLES = {
   },
   technician: {
     label: 'Technician',
-    tabs: ['dashboard', 'reminders', 'maintenance', 'amc', 'projects'],
+    // Technicians only need the AMC tab's Monthly Maintenance section to log
+    // visits — every other page (including the separate Maintenance tab) is
+    // out of scope for this role.
+    tabs: ['amc'],
     canDelete: false,
     canCreateTasks: false,
     canCreateService: false,
@@ -36,6 +39,11 @@ export const useAuthStore = defineStore('auth', () => {
   const permissions = computed(() => ROLES[role.value] || ROLES.technician)
   const canAccess   = (tab) => permissions.value.tabs?.includes(tab)
   const can         = (perm) => !!permissions.value[perm]
+  // The router falls back here whenever the current/requested route isn't in
+  // this role's tab list — must never point at a tab the role can't reach,
+  // or a restricted role (e.g. technician, limited to just "amc") would
+  // bounce in an infinite redirect loop against a hardcoded "/dashboard".
+  const homePath    = computed(() => '/' + (permissions.value.tabs?.[0] || 'login'))
 
   function saveSession(u) {
     user.value = u
@@ -129,7 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    user, loading, error, isLoggedIn, role, permissions, canAccess, can,
+    user, loading, error, isLoggedIn, role, permissions, canAccess, can, homePath,
     loadSession, login, logout,
   }
 })
