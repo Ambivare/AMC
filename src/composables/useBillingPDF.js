@@ -486,6 +486,7 @@ function buildQuotationStyleHtml(row, templateKey, company) {
         ${addrLine2 ? `${addrLine2}<br>` : ''}
         ${cityLine ? `${cityLine}<br>` : ''}
         <span class="co-contact-blue">Mob: ${company.phone || ''} &nbsp;|&nbsp; ${company.email || 'info@tabelevators.in'}</span>
+        ${company.gst ? `<br><span>GSTIN: ${company.gst}</span>` : ''}
       </div>
     </div>
     <div class="title-bar">${docTitle}</div>
@@ -494,6 +495,7 @@ function buildQuotationStyleHtml(row, templateKey, company) {
         <strong>THE CHAIRMAN / SECRETARY,</strong><br>
         <strong>${row.projectName || row.clientName || ''}</strong><br>
         ${row.clientAddress || ''}
+        ${row.clientGST ? `<br><strong>GSTIN:</strong> ${row.clientGST}${row.clientGSTCode ? ` (State Code: ${row.clientGSTCode})` : ''}` : ''}
       </div>
       <div class="info-right">
         <strong>${docTitle} NO:</strong> ${docNumber}<br>
