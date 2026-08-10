@@ -190,8 +190,8 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="label">Client Name *</label>
-          <input v-model="form.clientName" class="input" placeholder="Client / Company"
+          <label class="label">Site Name *</label>
+          <input v-model="form.clientName" class="input" placeholder="Site / Project name"
             :readonly="billUseProject && !!form.projectId"
             :style="billUseProject && form.projectId ? 'opacity:.8;' : ''" />
         </div>

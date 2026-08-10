@@ -39,9 +39,12 @@ async function fetchImageBytes(url) {
   }
 }
 
-function navyCell(children, widthPct, align) {
+// docx table/cell widths must be WidthType.DXA (absolute twips) — PERCENTAGE
+// widths render broken/garbled (columns collapse to 1-char-wide vertical
+// text) when opened in Google Docs, even though they look fine in Word.
+function navyCell(children, widthDxa, align) {
   return new TableCell({
-    width: { size: widthPct, type: WidthType.PERCENTAGE },
+    width: { size: widthDxa, type: WidthType.DXA },
     shading: { type: ShadingType.CLEAR, fill: NAVY, color: 'auto' },
     verticalAlign: VerticalAlign.CENTER,
     margins: { top: 100, bottom: 100, left: 150, right: 150 },
@@ -73,24 +76,27 @@ export async function buildLetterheadDocxBase64(company = {}) {
     ] }),
   ]
 
+  const HEADER_COLS = [1450, 6300, 4156] // sums to PAGE_W
   const headerMainTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: PAGE_W, type: WidthType.DXA },
+    columnWidths: HEADER_COLS,
     borders: NO_BORDERS,
     rows: [new TableRow({
       children: [
-        navyCell(logoChildren, 12, AlignmentType.LEFT),
-        navyCell(nameChildren, 53, AlignmentType.LEFT),
-        navyCell(contactChildren, 35, AlignmentType.RIGHT),
+        navyCell(logoChildren, HEADER_COLS[0], AlignmentType.LEFT),
+        navyCell(nameChildren, HEADER_COLS[1], AlignmentType.LEFT),
+        navyCell(contactChildren, HEADER_COLS[2], AlignmentType.RIGHT),
       ],
     })],
   })
 
   const headerBarTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: PAGE_W, type: WidthType.DXA },
+    columnWidths: [PAGE_W],
     borders: NO_BORDERS,
     rows: [new TableRow({
       children: [new TableCell({
-        width: { size: 100, type: WidthType.PERCENTAGE },
+        width: { size: PAGE_W, type: WidthType.DXA },
         shading: { type: ShadingType.CLEAR, fill: ORANGE, color: 'auto' },
         margins: { top: 60, bottom: 60, left: 150, right: 150 },
         children: [new Paragraph({ children: [new TextRun({ text: address, bold: true, size: 17, color: NAVY })] })],
@@ -98,16 +104,18 @@ export async function buildLetterheadDocxBase64(company = {}) {
     })],
   })
 
+  const FOOTER_COLS = [Math.round(PAGE_W / 2), PAGE_W - Math.round(PAGE_W / 2)]
   const footerMainTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: PAGE_W, type: WidthType.DXA },
+    columnWidths: FOOTER_COLS,
     borders: NO_BORDERS,
     rows: [new TableRow({
       children: [
-        navyCell([new Paragraph({ children: [new TextRun({ text: company.name || '', bold: true, size: 21, color: ORANGE })] })], 50, AlignmentType.LEFT),
+        navyCell([new Paragraph({ children: [new TextRun({ text: company.name || '', bold: true, size: 21, color: ORANGE })] })], FOOTER_COLS[0], AlignmentType.LEFT),
         navyCell([new Paragraph({ alignment: AlignmentType.RIGHT, children: [
           new TextRun({ text: (company.phone || '') + '    ', size: 16, color: GRAY }),
           new TextRun({ text: company.email || '', size: 16, color: GRAY }),
-        ] })], 50, AlignmentType.RIGHT),
+        ] })], FOOTER_COLS[1], AlignmentType.RIGHT),
       ],
     })],
   })

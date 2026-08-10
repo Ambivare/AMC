@@ -114,8 +114,8 @@
           <input v-model.number="form.numberOfLifts" class="input" type="number" min="1" />
         </div>
         <div class="form-group">
-          <label class="label">Client Name *</label>
-          <input v-model="form.clientName" class="input" placeholder="Client / Company"
+          <label class="label">Site Name *</label>
+          <input v-model="form.clientName" class="input" placeholder="Site / Project name"
             :readonly="useProject && !!form.projectId" :style="useProject && form.projectId ? 'opacity:.8;' : ''" />
         </div>
         <div class="form-group">
