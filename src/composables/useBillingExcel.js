@@ -812,19 +812,17 @@ async function buildWorkbook(row, templateKey) {
 }
 
 // ─── Main Excel download function ─────────────────────────────────────────────
+// Routes through saveBytesToDownloads (native Capacitor Filesystem write on
+// Android, plain <a download> on web) instead of a bare <a>/Blob URL, which
+// silently does nothing on native APKs.
 
-export async function downloadExcel(row, templateKey) {
+export async function downloadExcel(row, templateKey, ui) {
   const { wb, filename } = templateKey === 'taxInvoice'
     ? await buildTaxInvoiceWorkbook(row)
     : await buildWorkbook(row, templateKey)
   const buf = await wb.xlsx.writeBuffer()
-  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
+  const { saveBytesToDownloads, toBase64 } = await import('@/utils/saveFile')
+  await saveBytesToDownloads(filename, toBase64(buf), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ui)
 }
 
 // ─── Get Excel as ArrayBuffer (for email attachment) ─────────────────────────

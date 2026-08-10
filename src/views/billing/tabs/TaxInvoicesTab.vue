@@ -291,10 +291,14 @@
       </div>
 
       <template #footer>
-        <button class="btn-secondary" @click="showModal = false">Cancel</button>
-        <button class="btn-primary" @click="save" :disabled="saving">
-          <Save :size="14" /> {{ saving ? 'Saving…' : (editing ? 'Update Invoice' : 'Create Invoice') }}
-        </button>
+        <SwipeToConfirm
+          ref="taxSwipeRef"
+          style="width:100%;"
+          :label="editing ? 'Swipe to update invoice' : 'Swipe to create invoice'"
+          :done-label="editing ? 'Invoice updated' : 'Invoice created'"
+          :loading="saving"
+          @confirm="save"
+        />
       </template>
     </AppModal>
 
@@ -407,11 +411,12 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Search, Plus, Pencil, Trash2, Download, Save, CreditCard, FileSpreadsheet, FolderOpen } from 'lucide-vue-next'
+import { Search, Plus, Pencil, Trash2, Download, CreditCard, FileSpreadsheet, FolderOpen } from 'lucide-vue-next'
 import DataTable from '@/components/ui/DataTable.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import PDFDownloadButton from '@/components/ui/PDFDownloadButton.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import SwipeToConfirm from '@/components/ui/SwipeToConfirm.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
@@ -474,6 +479,7 @@ const editing = ref(null)
 const saving = ref(false)
 const confirmRef = ref(null)
 const deleteTarget = ref(null)
+const taxSwipeRef = ref(null)
 
 const emptyForm = () => ({
   projectId: '', projectName: '',
@@ -582,8 +588,8 @@ function openWithData(piRow) {
 }
 
 async function save() {
-  if (!form.value.clientName) { ui.error('Client name required.'); return }
-  if (!form.value.lines?.length) { ui.error('At least one line item is required.'); return }
+  if (!form.value.clientName) { ui.error('Client name required.'); taxSwipeRef.value?.reset(); return }
+  if (!form.value.lines?.length) { ui.error('At least one line item is required.'); taxSwipeRef.value?.reset(); return }
   saving.value = true
   try {
     const data = { ...form.value, updatedAt: new Date() }
@@ -601,14 +607,14 @@ async function save() {
       ui.success('Tax invoice created.')
     }
     showModal.value = false
-  } catch { ui.error('Save failed.') }
+  } catch { ui.error('Save failed.'); taxSwipeRef.value?.reset() }
   finally { saving.value = false }
 }
 
 async function downloadRowExcel(row) {
   const resolved = row.projectName || !row.projectId ? row
     : { ...row, projectName: allProjects.value.find(p => p.id === row.projectId)?.projectName || '' }
-  try { await downloadExcel(resolved, 'taxInvoice') }
+  try { await downloadExcel(resolved, 'taxInvoice', ui) }
   catch (e) { ui.error('Failed to generate Excel: ' + (e?.message || e)) }
 }
 

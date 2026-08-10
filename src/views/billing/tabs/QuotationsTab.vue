@@ -802,7 +802,7 @@ async function doDelete() {
 async function downloadRowExcel(row) {
   const resolved = row.projectName || !row.projectId ? row
     : { ...row, projectName: allProjects.value.find(p => p.id === row.projectId)?.projectName || '' }
-  try { await downloadExcel(resolved, 'quotation') }
+  try { await downloadExcel(resolved, 'quotation', ui) }
   catch (e) { ui.error('Failed to generate Excel: ' + (e?.message || e)) }
 }
 

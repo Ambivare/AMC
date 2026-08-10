@@ -583,7 +583,7 @@ function buildTaxInvoiceHtml(row, company) {
     const sgstAmt = taxable * halfGst / 100
     const lineTotal = taxable + cgstAmt + sgstAmt
     sumAmount += amount; sumDiscount += discount; sumTaxable += taxable; sumCgst += cgstAmt; sumSgst += sgstAmt; sumTotal += lineTotal
-    return `<tr>
+    return `<tr class="ti-data-row">
       <td>${i + 1}</td>
       <td class="desc">${l.description || ''}</td>
       <td>${l.hsnCode || ''}</td>
@@ -619,8 +619,8 @@ function buildTaxInvoiceHtml(row, company) {
   .doc-page { width: 210mm; ${fillPage ? 'height: 297mm; overflow: hidden;' : 'min-height: 297mm;'} padding: 10mm; margin: 0 auto; }
   .box { border: 1.4px solid #000; ${fillPage ? 'height: 100%;' : ''} display: flex; flex-direction: column; }
   .ti-items-wrap { ${fillPage ? 'flex: 1;' : ''} display: flex; flex-direction: column; min-height: 0; }
-  .ti-hdr { position: relative; text-align: center; padding: 8px 90px 4px; border-bottom: 1px solid #000; }
-  .ti-hdr img.logo { position: absolute; left: 10px; top: 8px; height: 38px; width: 38px; object-fit: contain; }
+  .ti-hdr { position: relative; text-align: center; padding: 8px 90px 4px 74px; border-bottom: 1px solid #000; }
+  .ti-hdr img.logo { position: absolute; left: 10px; top: 6px; height: 56px; width: 56px; object-fit: contain; }
   .ti-copy-tag { position: absolute; right: 10px; top: 10px; font-size: 9px; font-weight: 700; width: 90px; text-align: center; line-height: 1.3; }
   .ti-coname { font-size: 18px; font-weight: 800; }
   .ti-addr { font-size: 9px; margin-top: 3px; }
@@ -636,10 +636,15 @@ function buildTaxInvoiceHtml(row, company) {
   .ti-party:first-child { border-right: 1px solid #000; }
   .ti-party-title { text-align: center; font-weight: 700; border-bottom: 1px solid #000; padding: 3px; background: #dbe4f5; }
   .ti-party-body { padding: 5px 8px; min-height: 58px; }
-  table.ti-items { ${fillPage ? 'flex: 1;' : ''} width: 100%; border-collapse: collapse; font-size: 7.6px; }
-  table.ti-items th, table.ti-items td { border: 1px solid #000; padding: 3px 2px; text-align: center; }
-  table.ti-items th { font-weight: 700; background: #dbe4f5; font-size: 7.6px; }
+  table.ti-items { ${fillPage ? 'flex: 1;' : ''} width: 100%; border-collapse: collapse; font-size: 8.6px; table-layout: fixed; }
+  table.ti-items th, table.ti-items td { border: 1px solid #000; padding: 2px 3px; text-align: center; word-wrap: break-word; }
+  table.ti-items th { font-weight: 700; background: #dbe4f5; font-size: 8.6px; }
   table.ti-items td.desc { text-align: left; }
+  /* Only truly-blank filler rows lack an explicit row height, so the
+     browser's table height algorithm gives them 100% of any leftover space
+     when the table is flex-stretched to fill the page — real rows (which do
+     have an explicit height) stay compact/excel-like regardless of fill. */
+  table.ti-items thead tr, table.ti-items tr.ti-data-row, table.ti-items tfoot tr { height: 16px; }
   .ti-total-row td { font-weight: 700; background: #f1f4fb; }
   .ti-below { display: flex; border-top: 1px solid #000; }
   .ti-words { flex: 1.4; padding: 8px; font-weight: 700; font-size: 10px; border-right: 1px solid #000; }

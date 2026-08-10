@@ -7,7 +7,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core'
 const SaveToDownloadsNative = registerPlugin('SaveToDownloads')
 
 // Chunk-based base64 to avoid call stack overflow on large PDFs
-function toBase64(data) {
+export function toBase64(data) {
   const bytes = data instanceof Uint8Array
     ? data
     : new Uint8Array(data instanceof ArrayBuffer ? data : (data.buffer || data))

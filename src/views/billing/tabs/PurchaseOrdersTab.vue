@@ -419,7 +419,7 @@ async function save() {
 const confirmRef = ref(null)
 const deleteTarget = ref(null)
 async function downloadRowExcel(row) {
-  try { await downloadExcel(row, 'purchaseOrder') }
+  try { await downloadExcel(row, 'purchaseOrder', ui) }
   catch (e) { ui.error('Failed to generate Excel: ' + (e?.message || e)) }
 }
 
