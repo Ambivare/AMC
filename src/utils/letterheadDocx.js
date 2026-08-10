@@ -90,20 +90,6 @@ export async function buildLetterheadDocxBase64(company = {}) {
     })],
   })
 
-  const headerBarTable = new Table({
-    width: { size: PAGE_W, type: WidthType.DXA },
-    columnWidths: [PAGE_W],
-    borders: NO_BORDERS,
-    rows: [new TableRow({
-      children: [new TableCell({
-        width: { size: PAGE_W, type: WidthType.DXA },
-        shading: { type: ShadingType.CLEAR, fill: ORANGE, color: 'auto' },
-        margins: { top: 60, bottom: 60, left: 150, right: 150 },
-        children: [new Paragraph({ children: [new TextRun({ text: address, bold: true, size: 17, color: NAVY })] })],
-      })],
-    })],
-  })
-
   const FOOTER_COLS = [Math.round(PAGE_W / 2), PAGE_W - Math.round(PAGE_W / 2)]
   const footerMainTable = new Table({
     width: { size: PAGE_W, type: WidthType.DXA },
@@ -131,10 +117,13 @@ export async function buildLetterheadDocxBase64(company = {}) {
       properties: {
         page: {
           size: { width: PAGE_W, height: PAGE_H },
-          margin: { top: 0, bottom: 0, left: 0, right: 0, header: 0, footer: 0 },
+          // A hairline bottom margin (instead of exactly 0) keeps the last
+          // footer line from being clipped flush against the physical page
+          // edge — printers/viewers reserve a sliver of non-printable area.
+          margin: { top: 0, bottom: 140, left: 0, right: 0, header: 0, footer: 0 },
         },
       },
-      headers: { default: new Header({ children: [headerMainTable, headerBarTable] }) },
+      headers: { default: new Header({ children: [headerMainTable] }) },
       footers: { default: new Footer({ children: [footerMainTable, footerAddrPara] }) },
       children: [new Paragraph('')],
     }],
