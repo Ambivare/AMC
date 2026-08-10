@@ -40,6 +40,24 @@
         </div>
       </div>
       <div class="form-grid">
+        <div class="form-group form-full" style="margin-bottom:4px;">
+          <label class="label">Tax Invoice — Stamp Position</label>
+          <div style="display:flex;gap:8px;max-width:280px;">
+            <button
+              type="button"
+              class="btn-sm"
+              :style="`flex:1;padding:8px 0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid rgba(99,102,241,0.25);background:${(config.company.stampPosition || 'right') === 'left' ? '#6366f1' : 'transparent'};color:${(config.company.stampPosition || 'right') === 'left' ? '#fff' : 'var(--ct-sub)'};`"
+              @click="config.company.stampPosition = 'left'"
+            >Left</button>
+            <button
+              type="button"
+              class="btn-sm"
+              :style="`flex:1;padding:8px 0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid rgba(99,102,241,0.25);background:${(config.company.stampPosition || 'right') === 'right' ? '#6366f1' : 'transparent'};color:${(config.company.stampPosition || 'right') === 'right' ? '#fff' : 'var(--ct-sub)'};`"
+              @click="config.company.stampPosition = 'right'"
+            >Right</button>
+          </div>
+          <div style="font-size:11px;color:var(--ct-muted);margin-top:4px;">Controls which side the company stamp prints on in the Tax Invoice PDF's signature section.</div>
+        </div>
         <div class="form-group form-full">
           <label class="label">Company Name</label>
           <input v-model="config.company.name" class="input" placeholder="TAB Elevators Pvt. Ltd." />
@@ -911,6 +929,7 @@ const config = ref({
     accountNo: '',
     ifsc: '',
     website: '',
+    stampPosition: 'right',
   },
   templates: {
     quotation: '',

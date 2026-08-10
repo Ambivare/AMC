@@ -566,6 +566,7 @@ function buildTaxInvoiceHtml(row, company) {
   // fill the page on their own, so let them flow/overflow naturally onto a
   // second page instead of being squeezed or clipped.
   const fillPage = lines.length <= TI_MIN_ROWS
+  const stampOnLeft = company.stampPosition === 'left'
   const addrLine1 = company.addressLine1 || company.address || ''
   const addrLine2 = company.addressLine2 || ''
   const cityLine = [company.city, company.state, company.pincode].filter(Boolean).join(', ')
@@ -653,6 +654,8 @@ function buildTaxInvoiceHtml(row, company) {
   .ti-terms { flex: 1; padding: 6px 8px; font-size: 9px; }
   .ti-cert { text-align: center; font-size: 8.5px; padding: 4px; border-top: 1px solid #000; }
   .ti-sig { display: flex; justify-content: space-between; align-items: flex-end; padding: 20px 10px 10px; border-top: 1px solid #000; font-size: 9.5px; font-weight: 700; }
+  .ti-seal { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .ti-seal-stamp { width: 55px; height: 63px; object-fit: contain; opacity: .9; }
   .ti-sig .stamp-sig-combo { position: relative; width: 60px; height: 68px; margin: 0 0 4px auto; }
   .ti-sig .stamp-sig-combo img.stamp-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: .9; }
   .ti-sig .stamp-sig-combo img.sig-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; height: auto; z-index: 2; }
@@ -762,10 +765,13 @@ function buildTaxInvoiceHtml(row, company) {
     </div>
     <div class="ti-cert">Certified that the particulars given above are true and correct.</div>
     <div class="ti-sig">
-      <div>Common Seal</div>
+      <div class="ti-seal">
+        ${stampOnLeft && company.stampUrl ? `<img class="ti-seal-stamp" src="${company.stampUrl}" alt="Stamp">` : ''}
+        <span>Common Seal</span>
+      </div>
       <div style="text-align:right;">
         <div class="stamp-sig-combo">
-          ${company.stampUrl ? `<img class="stamp-img" src="${company.stampUrl}" alt="Stamp">` : ''}
+          ${!stampOnLeft && company.stampUrl ? `<img class="stamp-img" src="${company.stampUrl}" alt="Stamp">` : ''}
           ${company.signatureUrl ? `<img class="sig-img" src="${company.signatureUrl}" alt="Signature">` : ''}
         </div>
         For ${company.name || ''}<br><span style="font-weight:400;font-size:8.5px;">Authorised Signatory</span>

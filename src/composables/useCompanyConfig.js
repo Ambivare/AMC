@@ -6,7 +6,7 @@ import { Collections } from '@/firebase/collections'
 const company = ref({
   name: '', logoUrl: '', email: '', phone: '', address: '',
   city: '', state: '', pincode: '', gst: '', pan: '',
-  bankName: '', accountNo: '', ifsc: '', website: '',
+  bankName: '', accountNo: '', ifsc: '', website: '', stampPosition: 'right',
 })
 
 let loadPromise = null
