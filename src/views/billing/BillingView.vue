@@ -31,6 +31,10 @@
         <Receipt :size="14" style="display:inline;margin-right:4px;" />
         Tax Invoices
       </button>
+      <button :class="['tab-btn', activeTab === 'letterhead' && 'active']" @click="activeTab = 'letterhead'">
+        <FileText :size="14" style="display:inline;margin-right:4px;" />
+        Letterhead PDF
+      </button>
     </div>
 
     <div class="table-container" style="padding:20px;">
@@ -47,6 +51,7 @@
       />
       <PurchaseOrdersTab v-else-if="activeTab === 'po'" />
       <TaxInvoicesTab v-else-if="activeTab === 'tax'" ref="taxTabRef" />
+      <LetterheadTab v-else-if="activeTab === 'letterhead'" />
     </div>
   </div>
 </template>
@@ -59,6 +64,7 @@ import QuotationsTab from './tabs/QuotationsTab.vue'
 import ProformaInvoicesTab from './tabs/ProformaInvoicesTab.vue'
 import PurchaseOrdersTab from './tabs/PurchaseOrdersTab.vue'
 import TaxInvoicesTab from './tabs/TaxInvoicesTab.vue'
+import LetterheadTab from './tabs/LetterheadTab.vue'
 import { useTabBackHandler } from '@/composables/useTabBackHandler'
 
 const activeTab = ref('installation')

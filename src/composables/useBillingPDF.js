@@ -546,9 +546,243 @@ function buildQuotationStyleHtml(row, templateKey, company) {
 </html>`
 }
 
+// Minimum number of item rows always rendered on the Tax Invoice — short
+// item lists are padded with blank rows so the printed page always fills
+// out to a full A4 sheet, matching the fixed-row look of the official
+// spreadsheet stationery (which always has 12 rows regardless of use).
+const TI_MIN_ROWS = 10
+
+// Tax Invoice — dedicated GST-compliant layout (Bill/Ship to Party, HSN,
+// per-line CGST/SGST split, bank details) matching the company's official
+// "Tax Invoice - Intra State" stationery format exactly.
+function buildTaxInvoiceHtml(row, company) {
+  const { docNumber } = getDocMeta(row, 'taxInvoice')
+  const gstPercentNum = Number(row.gstPercent) || 0
+  const halfGst = gstPercentNum / 2
+  const rawLines = Array.isArray(row.lines) && row.lines.length ? row.lines : (row.items || [])
+  const lines = rawLines.length ? rawLines : [{}]
+  // Short item lists get padded + stretched to fill a full A4 page (matching
+  // the fixed-row look of the official stationery). Longer lists already
+  // fill the page on their own, so let them flow/overflow naturally onto a
+  // second page instead of being squeezed or clipped.
+  const fillPage = lines.length <= TI_MIN_ROWS
+  const addrLine1 = company.addressLine1 || company.address || ''
+  const addrLine2 = company.addressLine2 || ''
+  const cityLine = [company.city, company.state, company.pincode].filter(Boolean).join(', ')
+  const addrFull = [addrLine1, addrLine2, cityLine].filter(Boolean).join(', ')
+
+  let sumTaxable = 0, sumCgst = 0, sumSgst = 0, sumTotal = 0, sumAmount = 0, sumDiscount = 0
+  const itemRows = lines.map((l, i) => {
+    const qty = Number(l.qty ?? l.quantity) || 0
+    const rate = Number(l.unitPrice ?? l.rate) || 0
+    const amount = qty * rate
+    const discount = Number(l.discount) || 0
+    const taxable = amount - discount
+    const cgstAmt = taxable * halfGst / 100
+    const sgstAmt = taxable * halfGst / 100
+    const lineTotal = taxable + cgstAmt + sgstAmt
+    sumAmount += amount; sumDiscount += discount; sumTaxable += taxable; sumCgst += cgstAmt; sumSgst += sgstAmt; sumTotal += lineTotal
+    return `<tr>
+      <td>${i + 1}</td>
+      <td class="desc">${l.description || ''}</td>
+      <td>${l.hsnCode || ''}</td>
+      <td>${l.unit || ''}</td>
+      <td>${qty}</td>
+      <td>${fc(rate)}</td>
+      <td>${fc(amount)}</td>
+      <td>${fc(discount)}</td>
+      <td>${fc(taxable)}</td>
+      <td>${halfGst}%</td>
+      <td>${fc(cgstAmt)}</td>
+      <td>${halfGst}%</td>
+      <td>${fc(sgstAmt)}</td>
+      <td>${fc(lineTotal)}</td>
+    </tr>`
+  }).join('') + Array.from({ length: Math.max(0, TI_MIN_ROWS - lines.length) })
+    .map(() => '<tr class="ti-blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>')
+    .join('')
+
+  const totalTaxAmount = sumCgst + sumSgst
+  const grandTotal = sumTaxable + totalTaxAmount
+  const reverseChargeGst = row.reverseCharge === 'Y' ? totalTaxAmount : 0
+  const placeOfSupply = row.clientState || ''
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9px; color: #000; }
+  .doc-page { width: 210mm; ${fillPage ? 'height: 297mm; overflow: hidden;' : 'min-height: 297mm;'} padding: 10mm; margin: 0 auto; }
+  .box { border: 1.4px solid #000; ${fillPage ? 'height: 100%;' : ''} display: flex; flex-direction: column; }
+  .ti-items-wrap { ${fillPage ? 'flex: 1;' : ''} display: flex; flex-direction: column; min-height: 0; }
+  .ti-hdr { position: relative; text-align: center; padding: 8px 90px 4px; border-bottom: 1px solid #000; }
+  .ti-hdr img.logo { position: absolute; left: 10px; top: 8px; height: 38px; width: 38px; object-fit: contain; }
+  .ti-copy-tag { position: absolute; right: 10px; top: 10px; font-size: 9px; font-weight: 700; width: 90px; text-align: center; line-height: 1.3; }
+  .ti-coname { font-size: 18px; font-weight: 800; }
+  .ti-addr { font-size: 9px; margin-top: 3px; }
+  .ti-gstin { font-size: 9.5px; font-weight: 700; margin-top: 2px; }
+  .ti-title { text-align: center; font-size: 17px; font-weight: 800; padding: 5px; border-bottom: 1px solid #000; letter-spacing: .3px; }
+  .ti-meta { display: flex; flex-wrap: wrap; border-bottom: 1px solid #000; }
+  .ti-meta > div { width: 50%; display: flex; padding: 3px 8px; font-size: 9.5px; border-bottom: 1px solid #000; }
+  .ti-meta > div:nth-child(odd) { border-right: 1px solid #000; }
+  .ti-meta > div:nth-last-child(-n+2) { border-bottom: none; }
+  .ti-meta b { margin-right: 4px; white-space: nowrap; }
+  .ti-parties { display: flex; border-bottom: 1px solid #000; }
+  .ti-party { flex: 1; font-size: 9.5px; line-height: 1.55; }
+  .ti-party:first-child { border-right: 1px solid #000; }
+  .ti-party-title { text-align: center; font-weight: 700; border-bottom: 1px solid #000; padding: 3px; background: #dbe4f5; }
+  .ti-party-body { padding: 5px 8px; min-height: 58px; }
+  table.ti-items { ${fillPage ? 'flex: 1;' : ''} width: 100%; border-collapse: collapse; font-size: 7.6px; }
+  table.ti-items th, table.ti-items td { border: 1px solid #000; padding: 3px 2px; text-align: center; }
+  table.ti-items th { font-weight: 700; background: #dbe4f5; font-size: 7.6px; }
+  table.ti-items td.desc { text-align: left; }
+  .ti-total-row td { font-weight: 700; background: #f1f4fb; }
+  .ti-below { display: flex; border-top: 1px solid #000; }
+  .ti-words { flex: 1.4; padding: 8px; font-weight: 700; font-size: 10px; border-right: 1px solid #000; }
+  .ti-totalsbox { flex: 1; }
+  .ti-totalsbox table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+  .ti-totalsbox td { padding: 3px 8px; border-bottom: 1px solid #000; }
+  .ti-totalsbox td.lbl { font-weight: 700; }
+  .ti-totalsbox td.val { text-align: right; }
+  .ti-totalsbox tr:last-child td { border-bottom: none; font-weight: 800; }
+  .ti-bank-terms { display: flex; border-top: 1px solid #000; }
+  .ti-bank { flex: 1; padding: 6px 8px; font-size: 9px; border-right: 1px solid #000; }
+  .ti-terms { flex: 1; padding: 6px 8px; font-size: 9px; }
+  .ti-cert { text-align: center; font-size: 8.5px; padding: 4px; border-top: 1px solid #000; }
+  .ti-sig { display: flex; justify-content: space-between; align-items: flex-end; padding: 20px 10px 10px; border-top: 1px solid #000; font-size: 9.5px; font-weight: 700; }
+  .ti-sig .stamp-sig-combo { position: relative; width: 60px; height: 68px; margin: 0 0 4px auto; }
+  .ti-sig .stamp-sig-combo img.stamp-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: .9; }
+  .ti-sig .stamp-sig-combo img.sig-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; height: auto; z-index: 2; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div class="doc-page">
+  <div class="box">
+    <div class="ti-hdr">
+      ${company.logoUrl ? `<img class="logo" src="${company.logoUrl}" alt="Logo">` : ''}
+      <div class="ti-copy-tag">Original for<br>Recipient</div>
+      <div class="ti-coname">${company.name || ''}</div>
+      ${addrFull ? `<div class="ti-addr">${addrFull}</div>` : ''}
+      <div class="ti-addr">Tel: ${company.phone || ''} &nbsp;|&nbsp; ${company.email || 'info@tabelevators.in'}</div>
+      ${company.gst ? `<div class="ti-gstin">GSTIN: ${company.gst}</div>` : ''}
+    </div>
+    <div class="ti-title">Tax Invoice</div>
+    <div class="ti-meta">
+      <div><b>Invoice No:</b> ${docNumber}</div>
+      <div><b>Transport Mode:</b> ${row.transportMode || '—'}</div>
+      <div><b>Invoice Date:</b> ${formatDate(row.date || row.createdAt)}</div>
+      <div><b>Vehicle Number:</b> ${row.vehicleNumber || '—'}</div>
+      <div><b>Reverse Charge (Y/N):</b> ${row.reverseCharge || 'N'}</div>
+      <div><b>Date of Supply:</b> ${row.dateOfSupply ? formatDate(row.dateOfSupply) : '—'}</div>
+      <div><b>State:</b> ${row.clientState || '—'}${row.clientGSTCode ? ` (Code: ${row.clientGSTCode})` : ''}</div>
+      <div><b>Place of Supply:</b> ${placeOfSupply || '—'}</div>
+    </div>
+    <div class="ti-parties">
+      <div class="ti-party">
+        <div class="ti-party-title">Bill to Party</div>
+        <div class="ti-party-body">
+          <b>Name:</b> ${row.clientName || ''}<br>
+          <b>Address:</b> ${row.clientAddress || ''}<br>
+          <b>GSTIN:</b> ${row.clientGST || '—'}<br>
+          <b>State:</b> ${row.clientState || '—'}${row.clientGSTCode ? ` Code: ${row.clientGSTCode}` : ''}
+        </div>
+      </div>
+      <div class="ti-party">
+        <div class="ti-party-title">Ship to Party</div>
+        <div class="ti-party-body">
+          <b>Name:</b><br>
+          <b>Address:</b><br>
+          <b>GSTIN:</b><br>
+          <b>State:</b>
+        </div>
+      </div>
+    </div>
+    <div class="ti-items-wrap">
+      <table class="ti-items">
+        <thead><tr>
+          <th style="width:3%;">S.<br>No.</th>
+          <th style="width:16%;">Product Description</th>
+          <th style="width:6%;">HSN Code</th>
+          <th style="width:5%;">UOM</th>
+          <th style="width:4%;">Qty</th>
+          <th style="width:6%;">Rate</th>
+          <th style="width:7%;">Amount</th>
+          <th style="width:6%;">Discount</th>
+          <th style="width:8%;">Taxable Value</th>
+          <th style="width:5%;">CGST<br>Rate</th>
+          <th style="width:6%;">CGST<br>Amount</th>
+          <th style="width:5%;">SGST<br>Rate</th>
+          <th style="width:6%;">SGST<br>Amount</th>
+          <th style="width:7%;">Total</th>
+        </tr></thead>
+        <tbody>${itemRows}</tbody>
+        <tfoot>
+          <tr class="ti-total-row">
+            <td colspan="6">Total</td>
+            <td>${fc(sumAmount)}</td>
+            <td>${fc(sumDiscount)}</td>
+            <td>${fc(sumTaxable)}</td>
+            <td></td>
+            <td>${fc(sumCgst)}</td>
+            <td></td>
+            <td>${fc(sumSgst)}</td>
+            <td>${fc(sumTotal)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="ti-below">
+      <div class="ti-words">Total Invoice Amount in Words:<br>${numberToWords(grandTotal)}</div>
+      <div class="ti-totalsbox">
+        <table>
+          <tr><td class="lbl">Total Amount before Tax</td><td class="val">${fc(sumTaxable)}</td></tr>
+          <tr><td class="lbl">Add: CGST</td><td class="val">${fc(sumCgst)}</td></tr>
+          <tr><td class="lbl">Add: SGST</td><td class="val">${fc(sumSgst)}</td></tr>
+          <tr><td class="lbl">Total Tax Amount</td><td class="val">${fc(totalTaxAmount)}</td></tr>
+          <tr><td class="lbl">GST on Reverse Charge</td><td class="val">${fc(reverseChargeGst)}</td></tr>
+          <tr><td class="lbl">Total Amount after Tax</td><td class="val">${fc(grandTotal)}</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="ti-bank-terms">
+      <div class="ti-bank">
+        <b>Bank Details</b><br>
+        Bank Name: ${company.bankName || '—'}<br>
+        Bank A/C: ${company.accountNo || '—'}<br>
+        Bank IFSC: ${company.ifsc || '—'}
+      </div>
+      <div class="ti-terms">
+        <b>Terms &amp; Conditions</b><br>
+        ${row.notes ? row.notes.replace(/\n/g, '<br>') : '—'}
+      </div>
+    </div>
+    <div class="ti-cert">Certified that the particulars given above are true and correct.</div>
+    <div class="ti-sig">
+      <div>Common Seal</div>
+      <div style="text-align:right;">
+        <div class="stamp-sig-combo">
+          ${company.stampUrl ? `<img class="stamp-img" src="${company.stampUrl}" alt="Stamp">` : ''}
+          ${company.signatureUrl ? `<img class="sig-img" src="${company.signatureUrl}" alt="Signature">` : ''}
+        </div>
+        For ${company.name || ''}<br><span style="font-weight:400;font-size:8.5px;">Authorised Signatory</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`
+}
+
 function buildFallbackHtml(row, templateKey, company) {
-  if (templateKey === 'quotation' || templateKey === 'proforma' || templateKey === 'taxInvoice') {
+  if (templateKey === 'quotation' || templateKey === 'proforma') {
     return buildQuotationStyleHtml(row, templateKey, company)
+  }
+  if (templateKey === 'taxInvoice') {
+    return buildTaxInvoiceHtml(row, company)
   }
 
   const { docTitle, docNumber } = getDocMeta(row, templateKey)

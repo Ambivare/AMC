@@ -125,6 +125,190 @@ function getItems(row, templateKey) {
   return isLines ? row.lines : (row.items || [])
 }
 
+// Keep in sync with TI_MIN_ROWS in useBillingPDF.js — both pad short item
+// lists with blank rows so the printed page always fills a full A4 sheet.
+const TI_MIN_ROWS = 10
+
+// ─── Tax Invoice workbook — dedicated GST layout ──────────────────────────────
+// Mirrors the company's official "Tax Invoice - Intra State" stationery:
+// Bill/Ship to Party boxes, HSN + per-line CGST/SGST split, bank details.
+
+async function buildTaxInvoiceWorkbook(row) {
+  const config  = await loadConfig()
+  const company = config.company || {}
+  const { docNumber, filename } = getDocMeta(row, 'taxInvoice')
+
+  const wb = new ExcelJS.Workbook()
+  wb.creator = company.name || 'TAB Elevators'
+  wb.created = new Date()
+  const ws = wb.addWorksheet('Tax Invoice', {
+    pageSetup: {
+      paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+      margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 },
+    },
+  })
+
+  ws.columns = [
+    { width: 4 }, { width: 20 }, { width: 9 }, { width: 6 }, { width: 5 }, { width: 8 },
+    { width: 9 }, { width: 9 }, { width: 10 }, { width: 6 }, { width: 9 }, { width: 6 }, { width: 9 }, { width: 10 },
+  ]
+  const LIGHT = 'FFD9E1F2'
+  let r = 1
+
+  function setCell(row_, col_, value, opts = {}) {
+    const { bold = false, size = 10, align = 'left', fill = null, wrap = false, border: bd = 'thin' } = opts
+    const c = ws.getCell(row_, col_)
+    c.value = value
+    c.font = { name: 'Arial', size, bold }
+    c.alignment = { horizontal: align, vertical: 'middle', wrapText: wrap }
+    if (fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } }
+    c.border = border(bd)
+    return c
+  }
+  function mergeSet(row_, c1, c2, value, opts = {}) {
+    ws.mergeCells(row_, c1, row_, c2)
+    const cell = setCell(row_, c1, value, opts)
+    for (let c = c1 + 1; c <= c2; c++) ws.getCell(row_, c).border = border(opts.border || 'thin')
+    return cell
+  }
+
+  // ── Header ────────────────────────────────────────────────────────────────
+  ws.getRow(r).height = 22
+  mergeSet(r, 1, 10, company.name || 'TAB Elevators', { bold: true, size: 16, align: 'center' })
+  mergeSet(r, 11, 14, 'Original for\nRecipient', { bold: true, size: 8, align: 'center', wrap: true })
+  r++
+  const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
+  if (addr) { mergeSet(r, 1, 14, addr, { size: 9, align: 'center' }); r++ }
+  mergeSet(r, 1, 14, `Tel: ${company.phone || ''}   |   ${company.email || 'info@tabelevators.in'}`, { size: 9, align: 'center' })
+  r++
+  if (company.gst) { mergeSet(r, 1, 14, `GSTIN: ${company.gst}`, { bold: true, size: 9.5, align: 'center' }); r++ }
+
+  // ── Title ─────────────────────────────────────────────────────────────────
+  ws.getRow(r).height = 22
+  mergeSet(r, 1, 14, 'Tax Invoice', { bold: true, size: 15, align: 'center', fill: LIGHT })
+  r++
+
+  // ── Meta rows ─────────────────────────────────────────────────────────────
+  function metaRow(l1, v1, l2, v2) {
+    mergeSet(r, 1, 3, l1, { bold: true, size: 9.5 })
+    mergeSet(r, 4, 7, v1, { size: 9.5 })
+    mergeSet(r, 8, 10, l2, { bold: true, size: 9.5 })
+    mergeSet(r, 11, 14, v2, { size: 9.5 })
+    r++
+  }
+  metaRow('Invoice No:', docNumber, 'Transport Mode:', row.transportMode || '—')
+  metaRow('Invoice Date:', formatDate(row.date || row.createdAt), 'Vehicle Number:', row.vehicleNumber || '—')
+  metaRow('Reverse Charge (Y/N):', row.reverseCharge || 'N', 'Date of Supply:', row.dateOfSupply ? formatDate(row.dateOfSupply) : '—')
+  metaRow('State:', `${row.clientState || '—'}${row.clientGSTCode ? ' (Code: ' + row.clientGSTCode + ')' : ''}`, 'Place of Supply:', row.clientState || '—')
+
+  // ── Bill/Ship to Party ───────────────────────────────────────────────────
+  mergeSet(r, 1, 7, 'Bill to Party', { bold: true, size: 10, align: 'center', fill: LIGHT })
+  mergeSet(r, 8, 14, 'Ship to Party', { bold: true, size: 10, align: 'center', fill: LIGHT })
+  r++
+  ws.getRow(r).height = 62
+  mergeSet(r, 1, 7,
+    `Name: ${row.clientName || ''}\nAddress: ${row.clientAddress || ''}\nGSTIN: ${row.clientGST || '—'}\nState: ${row.clientState || '—'}${row.clientGSTCode ? ' Code: ' + row.clientGSTCode : ''}`,
+    { size: 9.5, align: 'left', wrap: true })
+  mergeSet(r, 8, 14, 'Name:\nAddress:\nGSTIN:\nState:', { size: 9.5, align: 'left', wrap: true })
+  r++
+
+  // ── Item table ────────────────────────────────────────────────────────────
+  const headers = ['S.No', 'Product Description', 'HSN Code', 'UOM', 'Qty', 'Rate', 'Amount', 'Discount', 'Taxable Value', 'CGST Rate', 'CGST Amount', 'SGST Rate', 'SGST Amount', 'Total']
+  ws.getRow(r).height = 26
+  headers.forEach((h, i) => setCell(r, i + 1, h, { bold: true, size: 8.5, align: 'center', fill: LIGHT, wrap: true }))
+  r++
+
+  const rawLines = Array.isArray(row.lines) && row.lines.length ? row.lines : (row.items || [])
+  const lines = rawLines.length ? rawLines : [{}]
+  const gstPercentNum = num(row.gstPercent)
+  const halfGst = gstPercentNum / 2
+  let sumAmount = 0, sumDiscount = 0, sumTaxable = 0, sumCgst = 0, sumSgst = 0, sumTotal = 0
+
+  lines.forEach((l, i) => {
+    const qty = num(l.qty ?? l.quantity)
+    const rate = num(l.unitPrice ?? l.rate)
+    const amount = qty * rate
+    const discount = num(l.discount)
+    const taxable = amount - discount
+    const cgstAmt = taxable * halfGst / 100
+    const sgstAmt = taxable * halfGst / 100
+    const lineTotal = taxable + cgstAmt + sgstAmt
+    sumAmount += amount; sumDiscount += discount; sumTaxable += taxable; sumCgst += cgstAmt; sumSgst += sgstAmt; sumTotal += lineTotal
+
+    const vals = [i + 1, l.description || '', l.hsnCode || '', l.unit || '', qty, rate, amount, discount, taxable, `${halfGst}%`, cgstAmt, `${halfGst}%`, sgstAmt, lineTotal]
+    vals.forEach((v, ci) => {
+      const c = setCell(r, ci + 1, v, { size: 8.5, align: ci === 1 ? 'left' : 'center' })
+      if ([5, 6, 8, 10, 12, 13].includes(ci)) c.numFmt = '#,##0.00'
+    })
+    r++
+  })
+
+  // Pad with blank rows so the sheet always prints to a full page, matching
+  // the fixed-row look of the official spreadsheet stationery.
+  for (let i = lines.length; i < TI_MIN_ROWS; i++) {
+    for (let ci = 0; ci < 14; ci++) setCell(r, ci + 1, '', { size: 8.5, align: 'center' })
+    r++
+  }
+
+  // Totals row
+  mergeSet(r, 1, 6, 'Total', { bold: true, size: 9, align: 'right', fill: LIGHT })
+  setCell(r, 7, sumAmount, { bold: true, size: 9, fill: LIGHT }).numFmt = '#,##0.00'
+  setCell(r, 8, sumDiscount, { bold: true, size: 9, fill: LIGHT }).numFmt = '#,##0.00'
+  setCell(r, 9, sumTaxable, { bold: true, size: 9, fill: LIGHT }).numFmt = '#,##0.00'
+  setCell(r, 10, '', { fill: LIGHT })
+  setCell(r, 11, sumCgst, { bold: true, size: 9, fill: LIGHT }).numFmt = '#,##0.00'
+  setCell(r, 12, '', { fill: LIGHT })
+  setCell(r, 13, sumSgst, { bold: true, size: 9, fill: LIGHT }).numFmt = '#,##0.00'
+  setCell(r, 14, sumTotal, { bold: true, size: 9, fill: LIGHT }).numFmt = '#,##0.00'
+  r++
+
+  const totalTaxAmount = sumCgst + sumSgst
+  const grandTotal = sumTaxable + totalTaxAmount
+  const reverseChargeGst = row.reverseCharge === 'Y' ? totalTaxAmount : 0
+
+  // ── Words + totals box ───────────────────────────────────────────────────
+  const wordsStartRow = r
+  const totalsLines = [
+    ['Total Amount before Tax', sumTaxable],
+    ['Add: CGST', sumCgst],
+    ['Add: SGST', sumSgst],
+    ['Total Tax Amount', totalTaxAmount],
+    ['GST on Reverse Charge', reverseChargeGst],
+    ['Total Amount after Tax', grandTotal],
+  ]
+  totalsLines.forEach(([label, val], i) => {
+    const isLast = i === totalsLines.length - 1
+    mergeSet(r, 8, 11, label, { bold: true, size: 9 })
+    mergeSet(r, 12, 14, val, { bold: isLast, size: 9, align: 'right' })
+    ws.getCell(r, 12).numFmt = '#,##0.00'
+    r++
+  })
+  ws.mergeCells(wordsStartRow, 1, r - 1, 7)
+  const wordsCell = ws.getCell(wordsStartRow, 1)
+  wordsCell.value = 'Total Invoice Amount in Words:\n' + amountWords(grandTotal)
+  wordsCell.font = { name: 'Arial', size: 9.5, bold: true }
+  wordsCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true }
+  applyBorders(ws, wordsStartRow, r - 1, 1, 7)
+
+  // ── Bank details + Terms ─────────────────────────────────────────────────
+  ws.getRow(r).height = 50
+  mergeSet(r, 1, 7, `Bank Details\nBank Name: ${company.bankName || '—'}\nBank A/C: ${company.accountNo || '—'}\nBank IFSC: ${company.ifsc || '—'}`, { size: 9, align: 'left', wrap: true })
+  mergeSet(r, 8, 14, `Terms & Conditions\n${row.notes || '—'}`, { size: 9, align: 'left', wrap: true })
+  r++
+
+  // ── Certification ─────────────────────────────────────────────────────────
+  mergeSet(r, 1, 14, 'Certified that the particulars given above are true and correct.', { size: 8.5, align: 'center' })
+  r++
+
+  // ── Signature ─────────────────────────────────────────────────────────────
+  ws.getRow(r).height = 40
+  mergeSet(r, 1, 7, 'Common Seal', { size: 9.5, align: 'center' })
+  mergeSet(r, 8, 14, `For ${company.name || ''}\n\nAuthorised Signatory`, { size: 9.5, align: 'center', wrap: true, bold: true })
+  r++
+
+  return { wb, filename }
+}
+
 // ─── Shared workbook builder ──────────────────────────────────────────────────
 
 async function buildWorkbook(row, templateKey) {
@@ -630,7 +814,9 @@ async function buildWorkbook(row, templateKey) {
 // ─── Main Excel download function ─────────────────────────────────────────────
 
 export async function downloadExcel(row, templateKey) {
-  const { wb, filename } = await buildWorkbook(row, templateKey)
+  const { wb, filename } = templateKey === 'taxInvoice'
+    ? await buildTaxInvoiceWorkbook(row)
+    : await buildWorkbook(row, templateKey)
   const buf = await wb.xlsx.writeBuffer()
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url = URL.createObjectURL(blob)
@@ -644,7 +830,9 @@ export async function downloadExcel(row, templateKey) {
 // ─── Get Excel as ArrayBuffer (for email attachment) ─────────────────────────
 
 export async function getExcelBuffer(row, templateKey) {
-  const { wb, filename } = await buildWorkbook(row, templateKey)
+  const { wb, filename } = templateKey === 'taxInvoice'
+    ? await buildTaxInvoiceWorkbook(row)
+    : await buildWorkbook(row, templateKey)
   const buf = await wb.xlsx.writeBuffer()
   return { buffer: buf, filename }
 }

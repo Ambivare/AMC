@@ -198,6 +198,25 @@
           <input v-model="form.contractNo" class="input" placeholder="Contract / PO number" />
         </div>
         <div class="form-group">
+          <label class="label">Transport Mode</label>
+          <input v-model="form.transportMode" class="input" placeholder="e.g. Road" />
+        </div>
+        <div class="form-group">
+          <label class="label">Vehicle Number</label>
+          <input v-model="form.vehicleNumber" class="input" placeholder="e.g. MH12AB1234" />
+        </div>
+        <div class="form-group">
+          <label class="label">Date of Supply</label>
+          <input v-model="form.dateOfSupply" class="input" type="date" />
+        </div>
+        <div class="form-group">
+          <label class="label">Reverse Charge (Y/N)</label>
+          <select v-model="form.reverseCharge" class="input">
+            <option value="N">N</option>
+            <option value="Y">Y</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label class="label">GST (%)</label>
           <select v-model.number="form.gstPercent" class="input" @change="recalc">
             <option :value="0">0%</option>
@@ -235,6 +254,7 @@
             <span class="li-unit">UOM</span>
             <span class="li-hsn">HSN/SAC</span>
             <span class="li-rate">Unit Price (₹)</span>
+            <span class="li-rate">Discount (₹)</span>
             <span class="li-amt">Amount (₹)</span>
             <span style="width:36px;flex-shrink:0;"></span>
           </div>
@@ -244,6 +264,7 @@
             <div class="li-field li-unit"><span class="li-label">UOM</span><input v-model="line.unit" class="input li-input" placeholder="Nos" /></div>
             <div class="li-field li-hsn"><span class="li-label">HSN/SAC</span><input v-model="line.hsnCode" class="input li-input" placeholder="998718" /></div>
             <div class="li-field li-rate"><span class="li-label">Unit Price (₹)</span><input v-model.number="line.unitPrice" class="input li-input" type="number" min="0" placeholder="0" @input="recalc" /></div>
+            <div class="li-field li-rate"><span class="li-label">Discount (₹)</span><input v-model.number="line.discount" class="input li-input" type="number" min="0" placeholder="0" @input="recalc" /></div>
             <div class="li-field li-amt"><span class="li-label">Amount (₹)</span><input :value="formatCurrencyRaw(line.qty * line.unitPrice || 0)" class="input li-input li-amt-input" readonly /></div>
             <button class="btn-danger btn-sm btn-icon li-del" @click="removeLine(idx)"><Trash2 :size="13" /></button>
           </div>
@@ -461,8 +482,9 @@ const emptyForm = () => ({
   clientState: '', clientGSTCode: '',
   contactPerson: '', clientPhone: '', clientEmail: '', contactPerson2: '', clientPhone2: '',
   liftDescription: '', contractNo: '',
+  transportMode: '', vehicleNumber: '', dateOfSupply: '', reverseCharge: 'N',
   gstPercent: 18, paymentMethod: '', notes: '',
-  lines: [{ description: '', qty: 1, unit: '', hsnCode: '', unitPrice: 0 }],
+  lines: [{ description: '', qty: 1, unit: '', hsnCode: '', unitPrice: 0, discount: 0 }],
   subtotal: 0, gstAmount: 0, total: 0,
   paymentStatus: 'unpaid', paidAmount: 0,
 })
@@ -496,13 +518,13 @@ const pendingTotal = computed(() => items.value.filter(i => (i.paymentStatus || 
 const overdueTotal = computed(() => items.value.filter(i => i.status === 'overdue').reduce((s, i) => s + (i.total || 0), 0))
 
 function recalc() {
-  const sub = form.value.lines.reduce((s, l) => s + (l.qty || 0) * (l.unitPrice || 0), 0)
+  const sub = form.value.lines.reduce((s, l) => s + ((l.qty || 0) * (l.unitPrice || 0) - (l.discount || 0)), 0)
   form.value.subtotal = sub
   form.value.gstAmount = Math.round(sub * (form.value.gstPercent || 0) / 100)
   form.value.total = form.value.subtotal + form.value.gstAmount
 }
 
-function addLine() { form.value.lines.push({ description: '', qty: 1, unit: '', hsnCode: '', unitPrice: 0 }) }
+function addLine() { form.value.lines.push({ description: '', qty: 1, unit: '', hsnCode: '', unitPrice: 0, discount: 0 }) }
 function removeLine(i) { form.value.lines.splice(i, 1); recalc() }
 
 function openAdd() {
