@@ -1131,10 +1131,10 @@
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <button class="btn-secondary btn-sm" @click="triggerDownload(contractPdfTarget.contractPdfUrl, (contractPdfTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT.pdf')">
-                <Download :size="12" /> Download
+              <button class="btn-secondary btn-sm" :disabled="contractPdfDownloading" @click="smartDownloadContractPdf(contractPdfTarget)">
+                <Download :size="12" /> {{ contractPdfDownloading ? 'Refreshing…' : 'Download' }}
               </button>
-              <button class="btn-secondary btn-sm" title="Save to Downloads folder" @click="downloadPdfToDownloads(contractPdfTarget.contractPdfUrl, (contractPdfTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT.pdf', ui)">
+              <button class="btn-secondary btn-sm" title="Save to Downloads folder" :disabled="contractPdfDownloading" @click="smartDownloadContractPdf(contractPdfTarget, true)">
                 <FileDown :size="12" />
               </button>
               <!-- Edit toggle -->
@@ -1562,10 +1562,10 @@
     </template>
     <template #footer>
       <button class="btn-secondary" @click="showViewModal = false">Close</button>
-      <button v-if="viewTarget?.contractPdfUrl" class="btn-secondary" @click="triggerDownload(viewTarget.contractPdfUrl, (viewTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT.pdf')">
-        <Download :size="14" /> Contract PDF
+      <button v-if="viewTarget?.contractPdfUrl" class="btn-secondary" :disabled="contractPdfDownloading" @click="smartDownloadContractPdf(viewTarget)">
+        <Download :size="14" /> {{ contractPdfDownloading ? 'Refreshing…' : 'Contract PDF' }}
       </button>
-      <button v-if="viewTarget?.contractPdfUrl" class="btn-secondary" title="Save Contract PDF to Downloads folder" @click="downloadPdfToDownloads(viewTarget.contractPdfUrl, (viewTarget.contractNumber || 'CONTRACT') + '-AMC-CONTRACT.pdf', ui)">
+      <button v-if="viewTarget?.contractPdfUrl" class="btn-secondary" title="Save Contract PDF to Downloads folder" :disabled="contractPdfDownloading" @click="smartDownloadContractPdf(viewTarget, true)">
         <FileDown :size="14" />
       </button>
       <button v-if="viewTarget?.renewalPdfUrl" class="btn-secondary" style="color:#10b981;border-color:#10b981;" @click="triggerDownload(viewTarget.renewalPdfUrl, (viewTarget.contractNumber || 'CONTRACT') + '-AMC-RENEWAL.pdf')">
@@ -2507,86 +2507,95 @@ function openContractPdf(row) {
   showContractPdfModal.value = true
 }
 
+// Builds the contract PDF HTML from the (possibly just-edited) contract row
+// + PDF customization form, uploads it, and saves the new URL back to
+// Firestore. Shared by the manual "generate/regenerate" swipe action and by
+// the auto-refresh-if-stale download path below.
+async function buildContractPdf(row, f) {
+  const ctx = await _getCtx()
+  const template = ctx?.contractHtml?.trim() || defaultContractTemplate()
+  const dateStr = f.date ? new Date(f.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-') : ''
+  const company = ctx?.company || {}
+  const isComp = !!row?.isComprehensive
+  const contractType = isComp ? 'Comprehensive' : 'Non-Comprehensive'
+  const periodStr = [formatDate(row?.startDate), formatDate(row?.endDate)].filter(Boolean).join(' to ')
+  const gstPercent = Number(row?.gstPercent) || 0
+  const contractValue = Number(row?.contractValue) || 0
+  const gstAmount = Number(row?.gstAmount) || 0
+  const totalValue = Number(row?.totalWithGST) || (contractValue + gstAmount)
+
+  const stampUri = await getStampDataUri()
+
+  let html = template
+  html = html.replaceAll('{{company.logo}}', company.logoUrl ? `<img src="${company.logoUrl}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;">` : '')
+  html = html.replaceAll('{{STAMP_IMG}}', stampUri ? `<img src="${stampUri}" alt="Stamp">` : '')
+  html = html.replaceAll('{{company.name}}', company.name || '')
+  html = html.replaceAll('{{company.address}}', [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', '))
+  html = html.replaceAll('{{company.phone}}', company.phone || '')
+  html = html.replaceAll('{{company.email}}', company.email || '')
+  html = html.replaceAll('{{LETTER_DATE}}', dateStr)
+  html = html.replaceAll('{{REF_NO}}', row?.contractNumber || '')
+  html = html.replaceAll('{{CLIENT_NAME}}', row?.clientName || '')
+  html = html.replaceAll('{{CLIENT_ADDRESS}}', (row?.clientAddress || '').replace(/\n/g, ', '))
+  html = html.replaceAll('{{CONTACT_PERSON}}', row?.contactPerson || '')
+  html = html.replaceAll('{{CONTACT_PHONE}}', row?.clientPhone || '')
+  html = html.replaceAll('{{LIFT_MAKE}}', f.liftMake || '')
+  html = html.replaceAll('{{LIFT_DOOR_TYPE}}', f.liftDoorType || '')
+  html = html.replaceAll('{{LIFT_TYPOLOGY}}', f.liftTypology || '')
+  html = html.replaceAll('{{LIFT_LOAD}}', f.liftLoad || '')
+  html = html.replaceAll('{{LIFT_HEIGHT}}', f.liftHeight || '')
+  html = html.replaceAll('{{NUM_LIFTS}}', String(f.numberOfLifts || 1))
+  html = html.replaceAll('{{PASSENGER_TYPE}}', f.passengerType || 'Passenger')
+  html = html.replaceAll('{{CONTRACT_TYPE}}', contractType)
+  html = html.replaceAll('{{CONTRACT_PERIOD}}', periodStr || '—')
+  html = html.replaceAll('{{CONTRACT_VALUE}}', formatCurrency(contractValue))
+  html = html.replaceAll('{{GST_PERCENT}}', String(gstPercent))
+  html = html.replaceAll('{{GST_AMOUNT}}', formatCurrency(gstAmount))
+  html = html.replaceAll('{{TOTAL_VALUE}}', formatCurrency(totalValue))
+  html = html.replaceAll('{{AMOUNT_WORDS}}', numberToWords(totalValue).toUpperCase())
+  html = html.replaceAll('{{OFFER_NON_COMP}}', f.nonCompAmc || '')
+  html = html.replaceAll('{{OFFER_DISCOUNT}}', f.discountAmount || '')
+  html = html.replaceAll('{{OFFER_FINAL}}', f.finalAmc || '')
+  html = html.replaceAll('{{PAYMENT_TERMS}}', f.paymentTerms || '')
+  html = html.replaceAll('{{DURATION}}', f.duration || '')
+
+  // Strip or unwrap conditional discount row
+  if (!f.discountEnabled) {
+    html = html.replace(/<!--\s*DISCOUNT_ROW_START\s*-->[\s\S]*?<!--\s*DISCOUNT_ROW_END\s*-->/g, '')
+  } else {
+    html = html.replace(/<!--\s*DISCOUNT_ROW_START\s*-->/g, '').replace(/<!--\s*DISCOUNT_ROW_END\s*-->/g, '')
+  }
+
+  // Strip whichever comprehensive/non-comprehensive block doesn't apply
+  if (isComp) {
+    html = html.replace(/<!--\s*NONCOMP_START\s*-->[\s\S]*?<!--\s*NONCOMP_END\s*-->/g, '')
+    html = html.replace(/<!--\s*COMP_START\s*-->/g, '').replace(/<!--\s*COMP_END\s*-->/g, '')
+  } else {
+    html = html.replace(/<!--\s*COMP_START\s*-->[\s\S]*?<!--\s*COMP_END\s*-->/g, '')
+    html = html.replace(/<!--\s*NONCOMP_START\s*-->/g, '').replace(/<!--\s*NONCOMP_END\s*-->/g, '')
+  }
+
+  const contractNo = row?.contractNumber || row?.id || 'CONTRACT'
+  const filename = [sanitizeForFilename(contractNo), sanitizeForFilename(row?.clientName), 'AMC-CONTRACT'].filter(Boolean).join('-') + '.pdf'
+
+  const retrieveUrl = await convertHtmlToPdf(html, filename, contractNo)
+
+  // Save URL and form data back to contract record
+  await edit(row.id, {
+    contractPdfUrl: retrieveUrl,
+    contractPdfFormData: { ...f },
+    contractPdfGeneratedAt: new Date(),
+    updatedAt: new Date(),
+  })
+
+  return { retrieveUrl, filename }
+}
+
 async function generateContractPdf() {
   contractPdfGenerating.value = true
   try {
-    const ctx = await _getCtx()
-    const template = ctx?.contractHtml?.trim() || defaultContractTemplate()
     const row = contractPdfTarget.value
-    const f = contractPdfForm.value
-    const dateStr = f.date ? new Date(f.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-') : ''
-    const company = ctx?.company || {}
-    const isComp = !!row?.isComprehensive
-    const contractType = isComp ? 'Comprehensive' : 'Non-Comprehensive'
-    const periodStr = [formatDate(row?.startDate), formatDate(row?.endDate)].filter(Boolean).join(' to ')
-    const gstPercent = Number(row?.gstPercent) || 0
-    const contractValue = Number(row?.contractValue) || 0
-    const gstAmount = Number(row?.gstAmount) || 0
-    const totalValue = Number(row?.totalWithGST) || (contractValue + gstAmount)
-
-    const stampUri = await getStampDataUri()
-
-    let html = template
-    html = html.replaceAll('{{company.logo}}', company.logoUrl ? `<img src="${company.logoUrl}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;">` : '')
-    html = html.replaceAll('{{STAMP_IMG}}', stampUri ? `<img src="${stampUri}" alt="Stamp">` : '')
-    html = html.replaceAll('{{company.name}}', company.name || '')
-    html = html.replaceAll('{{company.address}}', [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', '))
-    html = html.replaceAll('{{company.phone}}', company.phone || '')
-    html = html.replaceAll('{{company.email}}', company.email || '')
-    html = html.replaceAll('{{LETTER_DATE}}', dateStr)
-    html = html.replaceAll('{{REF_NO}}', row?.contractNumber || '')
-    html = html.replaceAll('{{CLIENT_NAME}}', row?.clientName || '')
-    html = html.replaceAll('{{CLIENT_ADDRESS}}', (row?.clientAddress || '').replace(/\n/g, ', '))
-    html = html.replaceAll('{{CONTACT_PERSON}}', row?.contactPerson || '')
-    html = html.replaceAll('{{CONTACT_PHONE}}', row?.clientPhone || '')
-    html = html.replaceAll('{{LIFT_MAKE}}', f.liftMake || '')
-    html = html.replaceAll('{{LIFT_DOOR_TYPE}}', f.liftDoorType || '')
-    html = html.replaceAll('{{LIFT_TYPOLOGY}}', f.liftTypology || '')
-    html = html.replaceAll('{{LIFT_LOAD}}', f.liftLoad || '')
-    html = html.replaceAll('{{LIFT_HEIGHT}}', f.liftHeight || '')
-    html = html.replaceAll('{{NUM_LIFTS}}', String(f.numberOfLifts || 1))
-    html = html.replaceAll('{{PASSENGER_TYPE}}', f.passengerType || 'Passenger')
-    html = html.replaceAll('{{CONTRACT_TYPE}}', contractType)
-    html = html.replaceAll('{{CONTRACT_PERIOD}}', periodStr || '—')
-    html = html.replaceAll('{{CONTRACT_VALUE}}', formatCurrency(contractValue))
-    html = html.replaceAll('{{GST_PERCENT}}', String(gstPercent))
-    html = html.replaceAll('{{GST_AMOUNT}}', formatCurrency(gstAmount))
-    html = html.replaceAll('{{TOTAL_VALUE}}', formatCurrency(totalValue))
-    html = html.replaceAll('{{AMOUNT_WORDS}}', numberToWords(totalValue).toUpperCase())
-    html = html.replaceAll('{{OFFER_NON_COMP}}', f.nonCompAmc || '')
-    html = html.replaceAll('{{OFFER_DISCOUNT}}', f.discountAmount || '')
-    html = html.replaceAll('{{OFFER_FINAL}}', f.finalAmc || '')
-    html = html.replaceAll('{{PAYMENT_TERMS}}', f.paymentTerms || '')
-    html = html.replaceAll('{{DURATION}}', f.duration || '')
-
-    // Strip or unwrap conditional discount row
-    if (!f.discountEnabled) {
-      html = html.replace(/<!--\s*DISCOUNT_ROW_START\s*-->[\s\S]*?<!--\s*DISCOUNT_ROW_END\s*-->/g, '')
-    } else {
-      html = html.replace(/<!--\s*DISCOUNT_ROW_START\s*-->/g, '').replace(/<!--\s*DISCOUNT_ROW_END\s*-->/g, '')
-    }
-
-    // Strip whichever comprehensive/non-comprehensive block doesn't apply
-    if (isComp) {
-      html = html.replace(/<!--\s*NONCOMP_START\s*-->[\s\S]*?<!--\s*NONCOMP_END\s*-->/g, '')
-      html = html.replace(/<!--\s*COMP_START\s*-->/g, '').replace(/<!--\s*COMP_END\s*-->/g, '')
-    } else {
-      html = html.replace(/<!--\s*COMP_START\s*-->[\s\S]*?<!--\s*COMP_END\s*-->/g, '')
-      html = html.replace(/<!--\s*NONCOMP_START\s*-->/g, '').replace(/<!--\s*NONCOMP_END\s*-->/g, '')
-    }
-
-    const contractNo = row?.contractNumber || row?.id || 'CONTRACT'
-    const filename = [sanitizeForFilename(contractNo), sanitizeForFilename(row?.clientName), 'AMC-CONTRACT'].filter(Boolean).join('-') + '.pdf'
-
-    const retrieveUrl = await convertHtmlToPdf(html, filename, contractNo)
-
-    // Save URL and form data back to contract record
-    await edit(row.id, {
-      contractPdfUrl: retrieveUrl,
-      contractPdfFormData: { ...f },
-      contractPdfGeneratedAt: new Date(),
-      updatedAt: new Date(),
-    })
+    const { retrieveUrl, filename } = await buildContractPdf(row, contractPdfForm.value)
     // Update local target so UI reflects new URL immediately
     contractPdfTarget.value = { ...row, contractPdfUrl: retrieveUrl }
     contractPdfEditEnabled.value = false
@@ -2598,6 +2607,51 @@ async function generateContractPdf() {
     contractPdfSwipeRef.value?.reset()
   } finally {
     contractPdfGenerating.value = false
+  }
+}
+
+// Detects whether the stored Contract PDF was generated before the contract
+// was last edited (e.g. start/end date changed after the PDF was made).
+function tsMs(ts) {
+  if (!ts) return 0
+  if (typeof ts.toDate === 'function') return ts.toDate().getTime()
+  if (ts instanceof Date) return ts.getTime()
+  if (typeof ts.seconds === 'number') return ts.seconds * 1000
+  if (typeof ts === 'string' || typeof ts === 'number') return new Date(ts).getTime()
+  return 0
+}
+function isContractPdfStale(row) {
+  if (!row?.contractPdfUrl) return false
+  if (!row.contractPdfGeneratedAt) return true
+  return tsMs(row.updatedAt) > tsMs(row.contractPdfGeneratedAt) + 2000
+}
+
+// Download entry point used by every "Contract PDF" button. Transparently
+// regenerates the PDF first if the contract has been edited since it was
+// last generated, so the downloaded file always matches the current
+// start/end dates and other contract fields — otherwise just serves the
+// already-uploaded PDF without another API round-trip.
+const contractPdfDownloading = ref(false)
+async function smartDownloadContractPdf(row, toDownloads = false) {
+  if (!row?.contractPdfUrl) return
+  const filename = (row.contractNumber || 'CONTRACT') + '-AMC-CONTRACT.pdf'
+  if (!isContractPdfStale(row)) {
+    if (toDownloads) downloadPdfToDownloads(row.contractPdfUrl, filename, ui)
+    else triggerDownload(row.contractPdfUrl, filename)
+    return
+  }
+  contractPdfDownloading.value = true
+  try {
+    const { retrieveUrl, filename: freshName } = await buildContractPdf(row, row.contractPdfFormData || {})
+    if (viewTarget.value?.id === row.id) viewTarget.value = { ...viewTarget.value, contractPdfUrl: retrieveUrl }
+    if (contractPdfTarget.value?.id === row.id) contractPdfTarget.value = { ...contractPdfTarget.value, contractPdfUrl: retrieveUrl }
+    if (toDownloads) downloadPdfToDownloads(retrieveUrl, freshName, ui)
+    else triggerDownload(retrieveUrl, freshName)
+    ui.success('Contract PDF was outdated — regenerated with the latest details.')
+  } catch (e) {
+    ui.error('Failed to refresh contract PDF: ' + (e?.message || e))
+  } finally {
+    contractPdfDownloading.value = false
   }
 }
 
