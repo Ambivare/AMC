@@ -90,26 +90,40 @@ export async function buildLetterheadDocxBase64(company = {}) {
     })],
   })
 
+  // Address row shares the same navy background as the row above it (merged
+  // into one table, no gap) instead of sitting on its own as a separate
+  // white-background paragraph — that's what made the grey text unreadable.
+  const footerAddrRow = new TableRow({
+    children: [new TableCell({
+      columnSpan: 2,
+      width: { size: PAGE_W, type: WidthType.DXA },
+      shading: { type: ShadingType.CLEAR, fill: NAVY, color: 'auto' },
+      margins: { top: 20, bottom: 90, left: 150, right: 150 },
+      borders: { top: { style: BorderStyle.SINGLE, size: 3, color: '3A3A55' } },
+      children: [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: `${address} | Maintenance & Installation of All Types of Elevators`, size: 14, color: GRAY })],
+      })],
+    })],
+  })
+
   const FOOTER_COLS = [Math.round(PAGE_W / 2), PAGE_W - Math.round(PAGE_W / 2)]
   const footerMainTable = new Table({
     width: { size: PAGE_W, type: WidthType.DXA },
     columnWidths: FOOTER_COLS,
     borders: NO_BORDERS,
-    rows: [new TableRow({
-      children: [
-        navyCell([new Paragraph({ children: [new TextRun({ text: company.name || '', bold: true, size: 21, color: ORANGE })] })], FOOTER_COLS[0], AlignmentType.LEFT),
-        navyCell([new Paragraph({ alignment: AlignmentType.RIGHT, children: [
-          new TextRun({ text: (company.phone || '') + '    ', size: 16, color: GRAY }),
-          new TextRun({ text: company.email || '', size: 16, color: GRAY }),
-        ] })], FOOTER_COLS[1], AlignmentType.RIGHT),
-      ],
-    })],
-  })
-
-  const footerAddrPara = new Paragraph({
-    alignment: AlignmentType.CENTER,
-    border: { top: { style: BorderStyle.SINGLE, size: 4, color: '333333', space: 4 } },
-    children: [new TextRun({ text: `${address} | Maintenance & Installation of All Types of Elevators`, size: 14, color: '888888' })],
+    rows: [
+      new TableRow({
+        children: [
+          navyCell([new Paragraph({ children: [new TextRun({ text: company.name || '', bold: true, size: 21, color: ORANGE })] })], FOOTER_COLS[0], AlignmentType.LEFT),
+          navyCell([new Paragraph({ alignment: AlignmentType.RIGHT, children: [
+            new TextRun({ text: (company.phone || '') + '    ', size: 16, color: GRAY }),
+            new TextRun({ text: company.email || '', size: 16, color: GRAY }),
+          ] })], FOOTER_COLS[1], AlignmentType.RIGHT),
+        ],
+      }),
+      footerAddrRow,
+    ],
   })
 
   const doc = new Document({
@@ -124,7 +138,7 @@ export async function buildLetterheadDocxBase64(company = {}) {
         },
       },
       headers: { default: new Header({ children: [headerMainTable] }) },
-      footers: { default: new Footer({ children: [footerMainTable, footerAddrPara] }) },
+      footers: { default: new Footer({ children: [footerMainTable] }) },
       children: [new Paragraph('')],
     }],
   })
