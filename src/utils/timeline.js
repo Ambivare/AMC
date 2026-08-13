@@ -10,7 +10,7 @@ import { create } from '@/firebase/firestore'
  */
 export async function logTimeline(collection, recordId, type, message, meta = {}) {
   try {
-    const sessionRaw = localStorage.getItem('me_session_v2')
+    const sessionRaw = localStorage.getItem('me_session_v3')
     const session = sessionRaw ? JSON.parse(sessionRaw) : {}
     await create(collection, {
       recordId,

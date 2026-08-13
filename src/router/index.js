@@ -29,6 +29,7 @@ const routes = [
       { path: 'dashboard',       name: 'Dashboard',       component: () => import('@/views/dashboard/DashboardView.vue'),           meta: { tab: 'dashboard' } },
       { path: 'reminders',       name: 'Reminders',       component: () => import('@/views/reminders/RemindersView.vue'),           meta: { tab: 'reminders' } },
       { path: 'maintenance',     name: 'Maintenance',     component: () => import('@/views/maintenance/MaintenanceView.vue'),       meta: { tab: 'maintenance' } },
+      { path: 'complaints',      name: 'Complaints',      component: () => import('@/views/complaints/ComplaintsView.vue'),         meta: { tab: 'complaints' } },
       { path: 'amc',             name: 'AMC',             component: () => import('@/views/amc/AMCView.vue'),                       meta: { tab: 'amc' } },
       { path: 'billing',         name: 'Billing',         component: () => import('@/views/billing/BillingView.vue'),               meta: { tab: 'billing' } },
       { path: 'projects',        name: 'Projects',        component: () => import('@/views/projects/ProjectsView.vue'),             meta: { tab: 'projects' } },

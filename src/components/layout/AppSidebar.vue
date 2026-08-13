@@ -95,7 +95,7 @@ import { useCompanyConfig } from '@/composables/useCompanyConfig'
 import {
   LayoutDashboard, FolderOpen,
   Receipt, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
-  Shield, ClipboardList, MoreVertical, Pin, Bell, Users,
+  Shield, ClipboardList, MoreVertical, Pin, Bell, Users, MessageSquareWarning,
 } from 'lucide-vue-next'
 
 const ui = useUIStore()
@@ -230,6 +230,7 @@ const navGroups = [
     items: [
       { to: '/projects',      tab: 'projects',      label: 'Projects',      icon: FolderOpen },
       { to: '/maintenance',   tab: 'maintenance',   label: 'Maintenance',   icon: ClipboardList },
+      { to: '/complaints',    tab: 'complaints',    label: 'Complaints',    icon: MessageSquareWarning },
     ],
   },
   {

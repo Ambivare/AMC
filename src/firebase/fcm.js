@@ -99,6 +99,7 @@ function handleNotificationTap(data) {
     amc_payment:             '/amc',
     amc_expiry:              '/amc',
     amc_installment_due:     '/amc',
+    amc_monthly_due:         '/amc',
     maintenance_due:         '/maintenance',
     job_scheduled:           '/maintenance',
     quotation_created:       '/billing',
@@ -106,6 +107,9 @@ function handleNotificationTap(data) {
     invoice_overdue:         '/billing',
     po_created:              '/billing',
     project_created:         '/projects',
+    new_complaint:           '/complaints',
+    complaint_assigned:      '/complaints',
+    complaint_resolved:      '/complaints',
   }
   const path = routes[data.type]
   if (path && window.__vueRouter) {

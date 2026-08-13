@@ -12,19 +12,21 @@ const SESSION_KEY = 'me_session_v3'
 export const ROLES = {
   admin: {
     label: 'Admin',
-    tabs: ['dashboard', 'reminders', 'maintenance', 'amc', 'billing', 'projects', 'hr', 'configurations'],
+    tabs: ['dashboard', 'reminders', 'maintenance', 'complaints', 'amc', 'billing', 'projects', 'hr', 'configurations'],
     canDelete: true,
     canCreateTasks: true,
     canCreateService: true,
   },
   technician: {
     label: 'Technician',
-    // Technicians only need the AMC tab's Monthly Maintenance section to log
-    // visits — every other page (including the separate Maintenance tab) is
-    // out of scope for this role.
-    tabs: ['amc'],
+    // Technicians need the AMC tab's Monthly Maintenance section to log
+    // visits, and Complaints to see/resolve jobs assigned to them — every
+    // other page (including the separate Maintenance tab) is out of scope.
+    tabs: ['amc', 'complaints'],
     canDelete: false,
     canCreateTasks: false,
+    // Technicians can be assigned complaints and resolve them, but the "New
+    // Complaint" creation button stays admin-only (canCreateService gates it).
     canCreateService: false,
   },
 }
