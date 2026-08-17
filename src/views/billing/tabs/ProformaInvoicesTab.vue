@@ -230,10 +230,14 @@
       </div>
 
       <template #footer>
-        <button class="btn-secondary" @click="showModal = false">Cancel</button>
-        <button class="btn-primary" :disabled="saving" @click="save">
-          <Save :size="14" /> {{ saving ? 'Saving…' : (editing ? 'Update' : 'Create PI') }}
-        </button>
+        <SwipeToConfirm
+          ref="piSwipeRef"
+          style="width:100%;"
+          :label="editing ? 'Swipe to update invoice' : 'Swipe to create invoice'"
+          :done-label="editing ? 'Invoice updated' : 'Invoice created'"
+          :loading="saving"
+          @confirm="save"
+        />
       </template>
     </AppModal>
 
@@ -416,11 +420,12 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Plus, Search, Pencil, Trash2, Save, Download, ArrowRight, CreditCard, FileSpreadsheet, FolderOpen } from 'lucide-vue-next'
+import { Plus, Search, Pencil, Trash2, Download, ArrowRight, CreditCard, FileSpreadsheet, FolderOpen } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import PDFDownloadButton from '@/components/ui/PDFDownloadButton.vue'
 import DataTable from '@/components/ui/DataTable.vue'
+import SwipeToConfirm from '@/components/ui/SwipeToConfirm.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
@@ -570,9 +575,10 @@ function openEdit(row) {
   showModal.value = true
 }
 
+const piSwipeRef = ref(null)
 async function save() {
-  if (!form.value.clientName) { ui.error('Client name is required.'); return }
-  if (!form.value.items?.length) { ui.error('At least one line item is required.'); return }
+  if (!form.value.clientName) { ui.error('Client name is required.'); piSwipeRef.value?.reset(); return }
+  if (!form.value.items?.length) { ui.error('At least one line item is required.'); piSwipeRef.value?.reset(); return }
   saving.value = true
   try {
     const data = { ...form.value, updatedAt: new Date() }
@@ -593,7 +599,7 @@ async function save() {
       ui.success('Bill invoice created.')
     }
     showModal.value = false
-  } catch { ui.error('Failed to save.') }
+  } catch { ui.error('Failed to save.'); piSwipeRef.value?.reset() }
   finally { saving.value = false }
 }
 

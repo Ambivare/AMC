@@ -599,14 +599,15 @@
         >
           <Zap :size="14" /> Create Services
         </button>
-        <button
+        <SwipeToConfirm
           v-if="wizardStep === 3"
-          class="btn-primary"
-          :disabled="saving"
-          @click="saveProject"
-        >
-          <Save :size="14" /> {{ saving ? 'Saving…' : (editingProject ? 'Update Project' : 'Create Project') }}
-        </button>
+          ref="projectSwipeRef"
+          style="width:100%;"
+          :label="editingProject ? 'Swipe to update project' : 'Swipe to create project'"
+          :done-label="editingProject ? 'Project updated' : 'Project created'"
+          :loading="saving"
+          @confirm="saveProject"
+        />
       </template>
     </AppModal>
 
@@ -802,7 +803,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Plus, Search, Pencil, Trash2, Save, Check, Loader2,
+  Plus, Search, Pencil, Trash2, Check, Loader2,
   ChevronLeft, ChevronRight, Upload, FolderKanban,
   FolderOpen, LayoutGrid, List, FileSpreadsheet, FileDown, History, Eye,
   Zap, Shield, RefreshCw, Wrench
@@ -811,6 +812,7 @@ import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import ExportDialog from '@/components/ui/ExportDialog.vue'
+import SwipeToConfirm from '@/components/ui/SwipeToConfirm.vue'
 import { useCollection } from '@/composables/useCollection'
 import { getAll } from '@/firebase/firestore'
 import { where } from 'firebase/firestore'
@@ -1174,9 +1176,11 @@ function nextStep() {
   wizardStep.value++
 }
 
+const projectSwipeRef = ref(null)
 async function saveProject() {
   if (!form.value.projectName || !form.value.clients[0]?.name) {
     ui.error('Project name and client name are required.')
+    projectSwipeRef.value?.reset()
     return
   }
   saving.value = true
@@ -1217,6 +1221,7 @@ async function saveProject() {
     }
   } catch (e) {
     ui.error('Failed to save project.')
+    projectSwipeRef.value?.reset()
   } finally {
     saving.value = false
   }

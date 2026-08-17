@@ -337,12 +337,14 @@
         </div>
       </form>
       <template #footer>
-        <button class="btn-secondary" type="button" @click="showModal = false">Cancel</button>
-        <button class="btn-primary" type="button" :disabled="saving" @click="saveComplaint">
-          <Loader2 v-if="saving" :size="14" style="animation:spin 1s linear infinite;" />
-          <Save v-else :size="14" />
-          {{ editingId ? 'Update' : 'Save Complaint' }}
-        </button>
+        <SwipeToConfirm
+          ref="complaintSwipeRef"
+          style="width:100%;"
+          :label="editingId ? 'Swipe to update complaint' : 'Swipe to log complaint'"
+          :done-label="editingId ? 'Complaint updated' : 'Complaint logged'"
+          :loading="saving"
+          @confirm="saveComplaint"
+        />
       </template>
     </AppModal>
 
@@ -627,11 +629,12 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import {
   MessageSquareWarning, Plus, Search, Pencil, Trash2, ArrowRight,
-  FileDown, Save, Loader2, Upload, FolderOpen, FileText, History, CheckCircle, DollarSign
+  FileDown, Loader2, Upload, FolderOpen, FileText, History, CheckCircle, DollarSign
 } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ExportDialog from '@/components/ui/ExportDialog.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import SwipeToConfirm from '@/components/ui/SwipeToConfirm.vue'
 import SignatureCanvas from '@/components/ui/SignatureCanvas.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import TechnicianSelect from '@/components/ui/TechnicianSelect.vue'
@@ -983,9 +986,11 @@ function openEdit(c) {
   showModal.value = true
 }
 
+const complaintSwipeRef = ref(null)
 async function saveComplaint() {
   if (!form.value.clientName || !form.value.issueType || !form.value.priority) {
     ui.warning('Please fill all required fields')
+    complaintSwipeRef.value?.reset()
     return
   }
   saving.value = true
@@ -1011,6 +1016,7 @@ async function saveComplaint() {
     await loadData()
   } catch (e) {
     ui.error('Failed to save complaint')
+    complaintSwipeRef.value?.reset()
   } finally {
     saving.value = false
   }

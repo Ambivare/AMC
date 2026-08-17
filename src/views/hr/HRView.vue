@@ -327,10 +327,15 @@
         </div>
       </div>
       <template #footer>
-        <button class="btn-secondary" @click="showModal = false">Cancel</button>
-        <button class="btn-primary" :disabled="saving || !canSubmit" @click="save">
-          <Save :size="14" /> {{ saving ? 'Saving…' : (editing ? 'Update' : 'Add Technician') }}
-        </button>
+        <SwipeToConfirm
+          ref="technicianSwipeRef"
+          style="width:100%;"
+          :disabled="!canSubmit"
+          :label="editing ? 'Swipe to update technician' : 'Swipe to add technician'"
+          :done-label="editing ? 'Technician updated' : 'Technician added'"
+          :loading="saving"
+          @confirm="save"
+        />
       </template>
     </AppModal>
 
@@ -511,10 +516,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Users, UserPlus, Search, Pencil, Trash2, Save, CheckCircle2, Ban, Banknote, Download, Key } from 'lucide-vue-next'
+import { Users, UserPlus, Search, Pencil, Trash2, CheckCircle2, Ban, Banknote, Download, Key } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import SwipeToConfirm from '@/components/ui/SwipeToConfirm.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
@@ -674,13 +680,14 @@ function openEdit(emp) {
   showModal.value = true
 }
 
+const technicianSwipeRef = ref(null)
 async function save() {
   if (!canSubmit.value) return
   const username = form.value.username.trim().toLowerCase()
   const dup = employees.value.find(e =>
     (e.username || '').toLowerCase() === username && (!editing.value || e.id !== editing.value.id)
   )
-  if (dup) { ui.error('That username is already taken.'); return }
+  if (dup) { ui.error('That username is already taken.'); technicianSwipeRef.value?.reset(); return }
 
   saving.value = true
   try {
@@ -697,6 +704,7 @@ async function save() {
     showModal.value = false
   } catch (e) {
     ui.error('Failed to save technician.')
+    technicianSwipeRef.value?.reset()
   } finally {
     saving.value = false
   }

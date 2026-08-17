@@ -388,10 +388,14 @@
       </div>
 
       <template #footer>
-        <button class="btn-secondary" @click="showModal = false">Cancel</button>
-        <button class="btn-primary" :disabled="saving" @click="save">
-          <Save :size="14" /> {{ saving ? 'Saving…' : (editing ? 'Update' : 'Create Quotation') }}
-        </button>
+        <SwipeToConfirm
+          ref="quotationSwipeRef"
+          style="width:100%;"
+          :label="editing ? 'Swipe to update quotation' : 'Swipe to create quotation'"
+          :done-label="editing ? 'Quotation updated' : 'Quotation created'"
+          :loading="saving"
+          @confirm="save"
+        />
       </template>
     </AppModal>
 
@@ -473,10 +477,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Plus, Search, Pencil, Trash2, Save, FileDown, ArrowRight, FileSpreadsheet, FolderOpen, Layers, Tag, Loader2, Wand2 } from 'lucide-vue-next'
+import { Plus, Search, Pencil, Trash2, FileDown, ArrowRight, FileSpreadsheet, FolderOpen, Layers, Tag, Loader2, Wand2 } from 'lucide-vue-next'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import DataTable from '@/components/ui/DataTable.vue'
+import SwipeToConfirm from '@/components/ui/SwipeToConfirm.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
@@ -740,9 +745,10 @@ function openEdit(row) {
   showModal.value = true
 }
 
+const quotationSwipeRef = ref(null)
 async function save() {
-  if (!form.value.clientName) { ui.error('Client name is required.'); return }
-  if (!form.value.items?.length) { ui.error('At least one line item is required.'); return }
+  if (!form.value.clientName) { ui.error('Client name is required.'); quotationSwipeRef.value?.reset(); return }
+  if (!form.value.items?.length) { ui.error('At least one line item is required.'); quotationSwipeRef.value?.reset(); return }
   saving.value = true
   try {
     const data = { ...form.value, updatedAt: new Date() }
@@ -787,7 +793,7 @@ async function save() {
       ui.success('Quotation created.')
     }
     showModal.value = false
-  } catch { ui.error('Failed to save quotation.') }
+  } catch { ui.error('Failed to save quotation.'); quotationSwipeRef.value?.reset() }
   finally { saving.value = false }
 }
 
