@@ -465,10 +465,14 @@
         </div>
       </div>
       <template #footer>
-        <button class="btn-secondary" @click="showModal = false">Cancel</button>
-        <button class="btn-primary" @click="save" :disabled="saving">
-          {{ saving ? 'Saving…' : (editing ? 'Update' : 'Schedule') }}
-        </button>
+        <SwipeToConfirm
+          ref="maintenanceSwipeRef"
+          style="width:100%;"
+          :label="editing ? 'Swipe to update' : 'Swipe to schedule'"
+          :done-label="editing ? 'Updated' : 'Scheduled'"
+          :loading="saving"
+          @confirm="save"
+        />
       </template>
     </AppModal>
 
@@ -916,6 +920,7 @@ import DataTable from '@/components/ui/DataTable.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import ExportDialog from '@/components/ui/ExportDialog.vue'
+import SwipeToConfirm from '@/components/ui/SwipeToConfirm.vue'
 import SignatureCanvas from '@/components/ui/SignatureCanvas.vue'
 import LiftSelector from '@/components/ui/LiftSelector.vue'
 import { useCollection } from '@/composables/useCollection'
@@ -1641,8 +1646,9 @@ function openEdit(row) {
   showModal.value = true
 }
 
+const maintenanceSwipeRef = ref(null)
 async function save() {
-  if (!form.value.clientName.trim()) return ui.error('Client name required')
+  if (!form.value.clientName.trim()) { ui.error('Client name required'); maintenanceSwipeRef.value?.reset(); return }
   saving.value = true
   try {
     if (editing.value) {
@@ -1653,7 +1659,7 @@ async function save() {
       ui.success('Maintenance scheduled')
     }
     showModal.value = false
-  } catch { ui.error('Save failed') }
+  } catch { ui.error('Save failed'); maintenanceSwipeRef.value?.reset() }
   finally { saving.value = false }
 }
 
