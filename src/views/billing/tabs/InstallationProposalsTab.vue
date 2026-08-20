@@ -138,17 +138,19 @@
         </div>
       </div>
 
-      <!-- Lift Specification Remarks -->
+      <!-- Lift Specification -->
       <div style="margin-bottom:18px;">
-        <div style="font-size:12px;font-weight:600;color:var(--ct-accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">
-          Lift Specification — Remarks Only (rest is fixed)
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:600;color:var(--ct-accent);text-transform:uppercase;letter-spacing:.05em;">Lift Specification</div>
+          <button class="btn-secondary btn-sm" @click="addSpecItem"><Plus :size="12" /> Add Row</button>
         </div>
-        <div class="glass" style="border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto;">
-          <div v-for="(it, i) in LIFT_SPEC_ITEMS" :key="i" class="spec-row">
+        <div class="glass" style="border-radius:12px;overflow:hidden;max-height:320px;overflow-y:auto;">
+          <div v-for="(it, i) in form.liftSpecItems" :key="i" class="spec-row">
             <span class="spec-idx">{{ i + 1 }}</span>
-            <span class="spec-label">{{ it.label }}</span>
-            <span class="spec-value">{{ it.spec }}</span>
-            <input v-model="form.liftSpecRemarks[i]" class="input spec-remark" placeholder="Remarks" />
+            <input v-model="it.label" class="input spec-label-input" placeholder="Description" />
+            <input v-model="it.spec" class="input spec-value-input" placeholder="Specification" />
+            <input v-model="it.remarks" class="input spec-remark" placeholder="Remarks" />
+            <button class="btn-danger btn-sm btn-icon" @click="removeSpecItem(i)"><Trash2 :size="12" /></button>
           </div>
         </div>
       </div>
@@ -283,7 +285,7 @@ import { Collections } from '@/firebase/collections'
 import { generateOrGetPdf, downloadPdfToDownloads } from '@/composables/usePdfApiService'
 import { getHeaderImgDataUri, getFooterImgDataUri, getStampDataUri } from '@/utils/pdfLogo'
 import {
-  LIFT_SPEC_ITEMS, DEFAULT_LIFT_SPEC_REMARKS, CLIENT_SCOPE_WORK_ITEMS,
+  LIFT_SPEC_ITEMS, DEFAULT_LIFT_SPEC_ITEMS, CLIENT_SCOPE_WORK_ITEMS,
   DEFAULT_ELEVATOR_ITEM, renderInstallationProposalHtml,
 } from '@/utils/installationProposalTemplate'
 
@@ -379,7 +381,7 @@ function defaultForm() {
     status: 'draft',
     clientName: '', clientAddress: '', contactPerson: '', clientPhone: '', clientEmail: '', city: '',
     numberOfLifts: 1,
-    liftSpecRemarks: [...DEFAULT_LIFT_SPEC_REMARKS],
+    liftSpecItems: DEFAULT_LIFT_SPEC_ITEMS(),
     items: [DEFAULT_ELEVATOR_ITEM()],
     gstEnabled: true, gstPercent: 18,
     clientScope: CLIENT_SCOPE_WORK_ITEMS.map(i => ({ label: i.label, value: i.default, remarks: '' })),
@@ -395,6 +397,9 @@ const paymentSplitTotal = computed(() => (Number(form.value.paymentSplit.adv) ||
 
 function addItem() { form.value.items.push(DEFAULT_ELEVATOR_ITEM()) }
 function removeItem(i) { form.value.items.splice(i, 1) }
+
+function addSpecItem() { form.value.liftSpecItems.push({ label: '', spec: '', remarks: '' }) }
+function removeSpecItem(i) { form.value.liftSpecItems.splice(i, 1) }
 
 function generateProposalNumber() {
   const today = new Date()
@@ -416,7 +421,13 @@ function openEdit(row) {
   editing.value = row
   form.value = {
     ...defaultForm(), ...row,
-    liftSpecRemarks: row.liftSpecRemarks?.length ? [...row.liftSpecRemarks] : [...DEFAULT_LIFT_SPEC_REMARKS],
+    // Older proposals only stored liftSpecRemarks against the old fixed
+    // label/spec list — pair them up so editing one still shows its data.
+    liftSpecItems: row.liftSpecItems?.length
+      ? row.liftSpecItems.map(i => ({ ...i }))
+      : row.liftSpecRemarks?.length
+        ? LIFT_SPEC_ITEMS.map((it, i) => ({ label: it.label, spec: it.spec, remarks: row.liftSpecRemarks[i] || '' }))
+        : DEFAULT_LIFT_SPEC_ITEMS(),
     items: row.items?.length ? row.items.map(i => ({ ...i })) : [DEFAULT_ELEVATOR_ITEM()],
     clientScope: row.clientScope?.length ? row.clientScope.map(s => ({ ...s })) : CLIENT_SCOPE_WORK_ITEMS.map(i => ({ label: i.label, value: i.default, remarks: '' })),
     paymentSplit: row.paymentSplit ? { ...row.paymentSplit } : { adv: 60, dispatch: 30, completion: 10 },
@@ -494,9 +505,9 @@ async function downloadPDFToDownloads(row) {
 
 .spec-row { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
 .spec-idx { width: 22px; flex-shrink: 0; color: var(--ct-muted); }
-.spec-label { width: 150px; flex-shrink: 0; font-weight: 600; color: var(--ct-primary); }
-.spec-value { flex: 1; color: var(--ct-sub); }
-.spec-remark { width: 160px; flex-shrink: 0; font-size: 12px !important; padding: 6px 10px !important; }
+.spec-label-input { width: 170px; flex-shrink: 0; font-weight: 600; font-size: 12px !important; padding: 6px 10px !important; }
+.spec-value-input { flex: 1; min-width: 0; font-size: 12px !important; padding: 6px 10px !important; }
+.spec-remark { width: 150px; flex-shrink: 0; font-size: 12px !important; padding: 6px 10px !important; }
 [data-theme="light"] .spec-row { border-bottom-color: #f1f5f9; }
 
 .scope-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
@@ -537,7 +548,7 @@ async function downloadPDFToDownloads(row) {
   .li-qty, .li-rate, .li-amt { width: calc(50% - 4px); flex: none; }
   .li-del { width: auto; margin-left: auto; }
   .spec-row { flex-wrap: wrap; }
-  .spec-label, .spec-value { width: 100%; }
+  .spec-label-input, .spec-value-input { width: 100%; }
   .spec-remark { width: 100%; }
   .scope-row { flex-wrap: wrap; }
   .scope-remark { width: 100%; }
