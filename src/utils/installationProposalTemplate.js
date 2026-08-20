@@ -33,6 +33,13 @@ export const LIFT_SPEC_ITEMS = [
 
 export const DEFAULT_LIFT_SPEC_REMARKS = LIFT_SPEC_ITEMS.map((_, i) => (i === 4 ? 'By Client' : i === 19 ? 'Usha Martin' : ''))
 
+// Starting template for a new proposal's Lift Specification table — every
+// row (label, spec, remarks) is freely editable per-proposal from here on,
+// this is only the seed data a fresh form is pre-filled with.
+export function DEFAULT_LIFT_SPEC_ITEMS() {
+  return LIFT_SPEC_ITEMS.map((it, i) => ({ label: it.label, spec: it.spec, remarks: DEFAULT_LIFT_SPEC_REMARKS[i] || '' }))
+}
+
 export const ADDITIONAL_FEATURES = [
   'Up / Down Direction Indicator',
   'Floor Indications',
@@ -130,7 +137,12 @@ function pageWrap(headerImg, footerImg, contentHtml) {
 }
 
 export function renderInstallationProposalHtml(row, headerImg, footerImg, stampImg) {
-  const remarks = row.liftSpecRemarks?.length ? row.liftSpecRemarks : DEFAULT_LIFT_SPEC_REMARKS
+  // liftSpecItems is the current per-proposal editable table (label, spec, remarks
+  // all dynamic). Older saved proposals only have liftSpecRemarks against the
+  // fixed LIFT_SPEC_ITEMS list — fall back to pairing them up for those.
+  const specItems = row.liftSpecItems?.length
+    ? row.liftSpecItems
+    : LIFT_SPEC_ITEMS.map((it, i) => ({ label: it.label, spec: it.spec, remarks: (row.liftSpecRemarks || DEFAULT_LIFT_SPEC_REMARKS)[i] || '' }))
   const items = row.items?.length ? row.items : [DEFAULT_ELEVATOR_ITEM()]
   const scope = row.clientScope?.length ? row.clientScope : CLIENT_SCOPE_WORK_ITEMS.map(i => ({ label: i.label, value: i.default, remarks: '' }))
   const pct = row.paymentSplit || { adv: 60, dispatch: 30, completion: 10 }
@@ -168,12 +180,12 @@ export function renderInstallationProposalHtml(row, headerImg, footerImg, stampI
   `
 
   // Page 2 — Lift specification + additional features
-  const specRows = LIFT_SPEC_ITEMS.map((it, i) => `
+  const specRows = specItems.map((it, i) => `
     <tr>
       <td>${i + 1}</td>
       <td style="font-weight:600;">${esc(it.label)}</td>
       <td>${esc(it.spec)}</td>
-      <td>${esc(remarks[i] || '')}</td>
+      <td>${esc(it.remarks || '')}</td>
     </tr>
   `).join('')
 
