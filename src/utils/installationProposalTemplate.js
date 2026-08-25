@@ -136,7 +136,8 @@ function pageWrap(headerImg, footerImg, contentHtml) {
   </div>`
 }
 
-export function renderInstallationProposalHtml(row, headerImg, footerImg, stampImg) {
+export function renderInstallationProposalHtml(row, headerImg, footerImg, stampImg, company) {
+  const companyName = esc(company?.name || '')
   // liftSpecItems is the current per-proposal editable table (label, spec, remarks
   // all dynamic). Older saved proposals only have liftSpecRemarks against the
   // fixed LIFT_SPEC_ITEMS list — fall back to pairing them up for those.
@@ -167,14 +168,14 @@ export function renderInstallationProposalHtml(row, headerImg, footerImg, stampI
     <p class="ip-p">Sub: Requirement of passenger lift${(row.numberOfLifts || 1) > 1 ? 's' : ''} for your prestigious project${row.city ? ` at ${esc(row.city)}` : ''}.</p>
     <p class="ip-p">Thank you for the opportunity to provide a proposal for the supply and installation of an elevator at your prestigious project.</p>
     <p class="ip-p">We are pleased to introduce ourselves as one of the leading and dynamic manufacturers of elevators. The company has extensive experience in the maintenance and installation of all types and makes of lifts.</p>
-    <p class="ip-p">TAB Elevators is committed to providing customers with the highest quality maintenance service anywhere in Maharashtra State.</p>
+    <p class="ip-p">${companyName} is committed to providing customers with the highest quality maintenance service anywhere in Maharashtra State.</p>
     <p class="ip-p">We offer customers a quality product with the latest technology at an affordable price. We also have a fully-fledged service department, with trained and experienced personnel capable of giving satisfactory after-sales service.</p>
     <p class="ip-p">We thank you once again for the interest shown by you in our company, and look forward to receiving your valued order.</p>
     <p class="ip-p">Thanking You,</p>
 
     <div class="ip-sig-row">
       <div class="col">
-        <div class="line">Proposed By<br>TAB Elevators and Systems</div>
+        <div class="line">Proposed By<br>${companyName}</div>
       </div>
     </div>
   `
@@ -250,7 +251,7 @@ export function renderInstallationProposalHtml(row, headerImg, footerImg, stampI
   const page4 = `
     <div class="ip-title-bar">Terms and Conditions of Quotation</div>
     <ol class="ip-list">
-      <li>All cheques / drafts must be drawn in favour of <strong>"TAB Elevators"</strong>.</li>
+      <li>All cheques / drafts must be drawn in favour of <strong>"${companyName}"</strong>.</li>
       <li>Payment Terms — <strong>${esc(pct.adv)}%</strong> against order booking, <strong>${esc(pct.dispatch)}%</strong> before dispatch of material, <strong>${esc(pct.completion)}%</strong> after lift completion.</li>
       <li>Tax &amp; Duties — Quoted prices are exclusive of all taxes.</li>
       <li>Warranty — Warranty means repair, maintenance and replacement, if needed, against manufacturing fault only, for a period of 1 year from the date of completion of the lift.</li>
@@ -269,7 +270,7 @@ export function renderInstallationProposalHtml(row, headerImg, footerImg, stampI
     <div class="ip-sig-row">
       <div class="col">
         <div class="ip-stamp-img">${stampImg ? `<img src="${stampImg}" alt="Stamp">` : ''}</div>
-        <div class="line">Proposed By<br>TAB Elevators and Systems</div>
+        <div class="line">Proposed By<br>${companyName}</div>
       </div>
       <div class="col">
         <div class="line">Accepted By<br>${esc(row.clientName) || ''}</div>

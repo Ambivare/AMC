@@ -282,6 +282,7 @@ import SwipeToConfirm from '@/components/ui/SwipeToConfirm.vue'
 import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
+import { useCompanyConfig } from '@/composables/useCompanyConfig'
 import { generateOrGetPdf, downloadPdfToDownloads } from '@/composables/usePdfApiService'
 import { getHeaderImgDataUri, getFooterImgDataUri, getStampDataUri } from '@/utils/pdfLogo'
 import {
@@ -473,8 +474,9 @@ function sanitizeForFilename(s) {
 }
 
 async function resolveProposalPdfUrl(row) {
-  const [headerImg, footerImg, stampImg] = await Promise.all([getHeaderImgDataUri(), getFooterImgDataUri(), getStampDataUri()])
-  const html = renderInstallationProposalHtml(row, headerImg, footerImg, stampImg)
+  const { company, load: loadCompany } = useCompanyConfig()
+  const [headerImg, footerImg, stampImg] = await Promise.all([getHeaderImgDataUri(), getFooterImgDataUri(), getStampDataUri(), loadCompany()])
+  const html = renderInstallationProposalHtml(row, headerImg, footerImg, stampImg, company.value)
   const nameForFile = sanitizeForFilename(row.projectName || getProjectName(row.projectId) || row.clientName || '')
   const filename = [sanitizeForFilename(row.proposalNo || 'Installation-Proposal'), nameForFile].filter(Boolean).join('-') + '.pdf'
   const url = await generateOrGetPdf(row, 'installationProposal', html, filename)
