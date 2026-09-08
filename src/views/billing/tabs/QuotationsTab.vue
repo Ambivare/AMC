@@ -488,6 +488,7 @@ import { Collections } from '@/firebase/collections'
 import { db } from '@/firebase/config'
 import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore'
 import { downloadExcel } from '@/composables/useBillingExcel'
+import { nextDocNumber } from '@/composables/useDocNumber'
 import { loadBillingConfig, renderBillingHtml, renderQuotationWithBomHtml, getDocMeta } from '@/composables/useBillingPDF'
 import { generateOrGetPdf, downloadPdfToDownloads } from '@/composables/usePdfApiService'
 
@@ -709,7 +710,7 @@ function generateQtnNumber() {
 
 function openAdd() {
   editing.value = null
-  const num = `Q-${String(items.value.length + 1).padStart(3, '0')}`
+  const num = nextDocNumber(items.value, 'Q')
   form.value = { ...defaultForm(), docNumber: num }
   billUseProject.value = false
   billProjectSearch.value = ''

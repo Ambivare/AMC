@@ -285,6 +285,7 @@ import { Collections } from '@/firebase/collections'
 import { useCompanyConfig } from '@/composables/useCompanyConfig'
 import { generateOrGetPdf, downloadPdfToDownloads } from '@/composables/usePdfApiService'
 import { getHeaderImgDataUri, getFooterImgDataUri, getStampDataUri } from '@/utils/pdfLogo'
+import { maxSeqNumber } from '@/composables/useDocNumber'
 import {
   LIFT_SPEC_ITEMS, DEFAULT_LIFT_SPEC_ITEMS, CLIENT_SCOPE_WORK_ITEMS,
   DEFAULT_ELEVATOR_ITEM, renderInstallationProposalHtml,
@@ -406,7 +407,9 @@ function generateProposalNumber() {
   const today = new Date()
   const dd = String(today.getDate()).padStart(2, '0')
   const mm = String(today.getMonth() + 1).padStart(2, '0')
-  form.value.proposalNo = `IP/${today.getFullYear()}/${mm}${dd}/${String(items.value.length + 1).padStart(3, '0')}`
+  const datePrefix = `IP/${today.getFullYear()}/${mm}${dd}/`
+  const seq = maxSeqNumber(items.value, 'proposalNo', new RegExp(`^${datePrefix.replace(/\//g, '\\/')}(\\d+)$`)) + 1
+  form.value.proposalNo = `${datePrefix}${String(seq).padStart(3, '0')}`
 }
 
 function openAdd() {
