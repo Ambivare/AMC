@@ -928,10 +928,14 @@
         </div>
       </div>
       <template #footer>
-        <button class="btn-secondary" @click="showLogModal = false">Cancel</button>
-        <button class="btn-primary" :disabled="saving" @click="saveLog">
-          <Save :size="14" /> {{ saving ? 'Saving…' : (editingLog ? 'Update Visit' : 'Log Visit & Generate Receipt') }}
-        </button>
+        <SwipeToConfirm
+          ref="logSwipeRef"
+          style="width:100%;"
+          :label="editingLog ? 'Swipe to update visit' : 'Swipe to log visit & generate receipt'"
+          :done-label="editingLog ? 'Visit updated' : 'Visit logged'"
+          :loading="saving"
+          @confirm="saveLog"
+        />
       </template>
     </AppModal>
 
@@ -3047,9 +3051,11 @@ async function captureLogPersonPhoto() {
   }
 }
 
+const logSwipeRef = ref(null)
 async function saveLog() {
   if (!logForm.value.date) {
     ui.error('Date is required.')
+    logSwipeRef.value?.reset()
     return
   }
   saving.value = true
@@ -3106,6 +3112,7 @@ async function saveLog() {
   } catch (e) {
     console.error('[AMC] saveLog failed:', e)
     ui.error((editingLog.value ? 'Failed to update log: ' : 'Failed to log maintenance: ') + (e?.message || 'Unknown error'))
+    logSwipeRef.value?.reset()
   } finally {
     saving.value = false
   }
@@ -3319,12 +3326,15 @@ async function generateRenewalPdf() {
     const renewalEndStr = fmtDate(f.endDate)
     const letterDateStr = fmtDate(f.letterDate)
 
+    const stampUri = await getStampDataUri()
+
     let html = template
     // Company placeholders — this template is user-authored in Configurations
     // and follows the same {{company.*}} convention as the main AMC Contract
     // template, but was never actually filled in here, so a template using
     // them printed the literal "{{company.email}}" text (or nothing).
     html = html.replaceAll('{{company.logo}}', company.logoUrl ? `<img src="${company.logoUrl}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;">` : '')
+    html = html.replaceAll('{{STAMP_IMG}}', stampUri ? `<img src="${stampUri}" alt="Stamp">` : '')
     html = html.replaceAll('{{company.name}}', company.name || '')
     html = html.replaceAll('{{company.address}}', [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', '))
     html = html.replaceAll('{{company.phone}}', company.phone || '')

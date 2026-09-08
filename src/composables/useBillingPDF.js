@@ -276,6 +276,9 @@ function renderTemplate(row, templateKey, config) {
   const headerImgTag = company.headerUrl
     ? `<img src="${company.headerUrl}" alt="Header" style="width:100%;height:auto;display:block;">`
     : ''
+  const stampImgTag = company.stampUrl
+    ? `<img src="${company.stampUrl}" alt="Stamp" style="max-height:48px;max-width:70px;object-fit:contain;opacity:.9;">`
+    : ''
 
   let templateHtml = storedTemplate.trim() || buildFallbackHtml(row, templateKey, company)
 
@@ -298,6 +301,18 @@ function renderTemplate(row, templateKey, config) {
       /<div class="sec-hdr">WORK SCHEDULE<\/div>[\s\S]*?(?=<div class="gap"|<div class="sig-hdr")/,
       '{{workScheduleBlock}}\n\n    '
     )
+  }
+
+  // ── Auto-migrate stored templates saved before the company stamp existed —
+  // drop the {{company.stampImg}} placeholder into the empty signature pad
+  // (or the plain-text signature line) so old saved templates pick up the
+  // stamp too, without needing to be re-saved.
+  if (!templateHtml.includes('{{company.stampImg}}')) {
+    if (templateHtml.includes('class="sig-pad"></div>')) {
+      templateHtml = templateHtml.replace('class="sig-pad"></div>', 'class="sig-pad">{{company.stampImg}}</div>')
+    } else if (templateHtml.includes('class="footer-sig">')) {
+      templateHtml = templateHtml.replace('class="footer-sig">', 'class="footer-sig">{{company.stampImg}}')
+    }
   }
 
   // ── Dynamic section blocks (quotation terms / payment / schedule) ─────────────
@@ -345,6 +360,7 @@ ${row.freeAmc ? '<div class="sec-row">Free AMC: 1 Year</div>' : ''}`
     // Company
     .replace(/\{\{company\.logo\}\}/g, logoImgTag)
     .replace(/\{\{company\.headerImg\}\}/g, headerImgTag)
+    .replace(/\{\{company\.stampImg\}\}/g, stampImgTag)
     .replace(/\{\{company\.name\}\}/g, company.name || '')
     .replace(/\{\{company\.tagline\}\}/g, company.tagline || '')
     .replace(/\{\{company\.address\}\}/g, addr)

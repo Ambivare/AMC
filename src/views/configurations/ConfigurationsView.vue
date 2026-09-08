@@ -1055,6 +1055,7 @@ function previewTemplate(key) {
     // Company
     .replace(/\{\{company\.logo\}\}/g, `<img src="/static/logo.png" alt="Logo" style="max-height:55px;object-fit:contain;" onerror="this.style.display='none'">`)
     .replace(/\{\{company\.headerImg\}\}/g, '')
+    .replace(/\{\{company\.stampImg\}\}/g, `<img src="/static/stamp.png" alt="Stamp" style="max-height:48px;max-width:70px;object-fit:contain;opacity:.9;" onerror="this.style.display='none'">`)
     .replace(/\{\{company\.name\}\}/g, co.name || 'TAB Elevators Pvt. Ltd.')
     .replace(/\{\{company\.tagline\}\}/g, co.tagline || 'Quality Elevators for Every Need')
     .replace(/\{\{company\.cin\}\}/g, co.cin || 'U45209MH2010PTC123456')
@@ -1172,7 +1173,8 @@ function legacyBillingTemplate() {
   /* Footer */
   .footer { border-top: 1px solid #e2e8f0; padding-top: 14px; display: flex; justify-content: space-between; align-items: flex-end; }
   .sig { text-align: center; }
-  .sig-pad { height: 32px; }
+  .sig-pad { height: 32px; display: flex; align-items: flex-end; }
+  .sig-pad img { max-height: 32px; max-width: 90px; object-fit: contain; opacity: .9; }
   .sig-line { border-top: 1px solid #1e293b; padding-top: 4px; font-size: 11px; font-weight: 600; color: #1e293b; }
   .sig-sub { font-size: 10px; color: #64748b; margin-top: 2px; }
   .contact-r { text-align: right; font-size: 10px; color: #94a3b8; line-height: 1.75; }
@@ -1244,7 +1246,7 @@ function legacyBillingTemplate() {
   </div>
   <div class="footer">
     <div class="sig">
-      <div class="sig-pad"></div>
+      <div class="sig-pad">{{company.stampImg}}</div>
       <div class="sig-line">Authorised Signatory</div>
       <div class="sig-sub">For {{company.name}}</div>
     </div>
@@ -1282,7 +1284,8 @@ function defaultQuotationTemplate() {
   table.items { width: 100%; border-collapse: collapse; border-top: 1px solid #000; }
   table.items th { border: 1px solid #000; padding: 6px 8px; font-size: 11.5px; font-weight: 700; text-align: center; }
   .amount-words { border-top: 1px solid #000; padding: 8px 12px; font-weight: 700; font-size: 12.5px; }
-  .footer-sig { padding: 34px 12px 12px; font-weight: 700; color: #1d4ed8; border-top: 1px solid #000; font-size: 13px; }
+  .footer-sig { padding: 8px 12px 12px; font-weight: 700; color: #1d4ed8; border-top: 1px solid #000; font-size: 13px; display: flex; align-items: flex-end; gap: 10px; }
+  .footer-sig img { max-height: 46px; max-width: 68px; object-fit: contain; opacity: .9; margin-bottom: 26px; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
@@ -1328,7 +1331,7 @@ function defaultQuotationTemplate() {
       </tfoot>
     </table>
     <div class="amount-words">{{grandTotalInWords}}</div>
-    <div class="footer-sig">{{company.name}}</div>
+    <div class="footer-sig">{{company.stampImg}}{{company.name}}</div>
   </div>
 </div>
 </body>
@@ -1395,7 +1398,8 @@ function defaultBOMTemplate() {
   .notes { border-left: 3px solid #cbd5e1; padding: 8px 12px; font-size: 11px; color: #64748b; background: #f8fafc; margin-bottom: 18px; border-radius: 0 4px 4px 0; }
   .footer { border-top: 1px solid #e2e8f0; padding-top: 14px; display: flex; justify-content: space-between; align-items: flex-end; }
   .sig { text-align: center; }
-  .sig-pad { height: 32px; }
+  .sig-pad { height: 32px; display: flex; align-items: flex-end; }
+  .sig-pad img { max-height: 32px; max-width: 90px; object-fit: contain; opacity: .9; }
   .sig-line { border-top: 1px solid #1e293b; padding-top: 4px; font-size: 11px; font-weight: 600; color: #1e293b; }
   .sig-sub { font-size: 10px; color: #64748b; margin-top: 2px; }
   .contact-r { text-align: right; font-size: 10px; color: #94a3b8; line-height: 1.75; }
@@ -1446,7 +1450,7 @@ function defaultBOMTemplate() {
   <div class="notes"><strong>Notes:</strong> {{notes}}</div>
   <div class="footer">
     <div class="sig">
-      <div class="sig-pad"></div>
+      <div class="sig-pad">{{company.stampImg}}</div>
       <div class="sig-line">Authorised Signatory</div>
       <div class="sig-sub">For {{company.name}}</div>
     </div>

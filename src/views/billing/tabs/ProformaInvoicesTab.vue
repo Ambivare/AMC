@@ -431,6 +431,7 @@ import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { Collections } from '@/firebase/collections'
 import { downloadExcel } from '@/composables/useBillingExcel'
+import { nextDocNumber } from '@/composables/useDocNumber'
 
 const emit = defineEmits(['convert-to-ti'])
 const ui = useUIStore()
@@ -556,7 +557,7 @@ function recalc() {
 
 function openAdd() {
   editing.value = null
-  const num = `PI-${String(items.value.length + 1).padStart(3, '0')}`
+  const num = nextDocNumber(items.value, 'PI')
   form.value = { ...defaultForm(), docNumber: num }
   billUseProject.value = false
   billProjectSearch.value = ''
@@ -675,7 +676,7 @@ function convertToTI(row) {
 
 function openWithData(quotationRow) {
   editing.value = null
-  const num = `PI-${String(items.value.length + 1).padStart(3, '0')}`
+  const num = nextDocNumber(items.value, 'PI')
   form.value = {
     ...defaultForm(),
     docNumber: num,

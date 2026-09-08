@@ -421,6 +421,7 @@ import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
 import { downloadExcel } from '@/composables/useBillingExcel'
+import { nextDocNumber } from '@/composables/useDocNumber'
 
 const ui = useUIStore()
 const { items, loading, add, edit, del } = useCollection(Collections.TAX_INVOICES)
@@ -536,7 +537,7 @@ function removeLine(i) { form.value.lines.splice(i, 1); recalc() }
 function openAdd() {
   editing.value = null
   form.value = emptyForm()
-  form.value.docNumber = `TI-${String(items.value.length + 1).padStart(3, '0')}`
+  form.value.docNumber = nextDocNumber(items.value, 'TI')
   billUseProject.value = false
   billProjectSearch.value = ''
   showModal.value = true
@@ -559,7 +560,7 @@ function openWithData(piRow) {
   editing.value = null
   form.value = {
     ...emptyForm(),
-    docNumber: `TI-${String(items.value.length + 1).padStart(3, '0')}`,
+    docNumber: nextDocNumber(items.value, 'TI'),
     clientName: piRow.clientName || '',
     clientAddress: piRow.clientAddress || '',
     clientGST: piRow.clientGST || '',

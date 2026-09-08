@@ -279,6 +279,7 @@ import { useCollection } from '@/composables/useCollection'
 import { useUIStore } from '@/stores/ui'
 import { Collections } from '@/firebase/collections'
 import { downloadExcel } from '@/composables/useBillingExcel'
+import { nextDocNumber } from '@/composables/useDocNumber'
 
 const ui = useUIStore()
 const { items, loading, add, edit, del } = useCollection(Collections.PURCHASE_ORDERS)
@@ -383,7 +384,7 @@ function recalc() {
 
 function openAdd() {
   editing.value = null
-  const num = `PO-${String(items.value.length + 1).padStart(3, '0')}`
+  const num = nextDocNumber(items.value, 'PO')
   form.value = { ...defaultForm(), docNumber: num }
   billUseProject.value = false
   billProjectSearch.value = ''
