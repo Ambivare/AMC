@@ -308,7 +308,7 @@ function renderTemplate(row, templateKey, config) {
   // drop the {{company.stampImg}} placeholder into the empty signature pad
   // (or the plain-text signature line) so old saved templates pick up the
   // stamp too, without needing to be re-saved.
-  if (!templateHtml.includes('{{company.stampImg}}')) {
+  if (!useBuiltIn && !templateHtml.includes('{{company.stampImg}}')) {
     if (templateHtml.includes('class="sig-pad"></div>')) {
       templateHtml = templateHtml.replace('class="sig-pad"></div>', 'class="sig-pad">{{company.stampImg}}</div>')
     } else if (templateHtml.includes('class="footer-sig">')) {
