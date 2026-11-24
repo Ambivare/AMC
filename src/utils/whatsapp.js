@@ -20,7 +20,7 @@ export function formatMonthLabel(monthKey) {
 
 export function buildCompletionMessage(monthKey) {
   const monthLabel = formatMonthLabel(monthKey)
-  return `Hello Sir,\n\nPlease find attached completion report of ${monthLabel} from TAB Elevators.`
+  return `Hello Sir,\n\nPlease find attached completion report of ${monthLabel}.`
 }
 
 /** Normalizes an Indian phone number to WhatsApp's digits-only, country-code-prefixed format. Returns null if invalid. */

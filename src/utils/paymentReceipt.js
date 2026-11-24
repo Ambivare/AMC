@@ -54,7 +54,7 @@ export async function generatePaymentReceiptPdf({
     try { doc.addImage(company.logoUrl, 'PNG', MR - logoW, 6, logoW, logoW) } catch { /* ignore bad image data */ }
   }
   doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(29, 78, 216)
-  doc.text(company.name || 'TAB Elevators', MR - logoW - (hasLogo ? 3 : 0), 12, { align: 'right' })
+  doc.text(company.name || '', MR - logoW - (hasLogo ? 3 : 0), 12, { align: 'right' })
   doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(71, 85, 105)
   const addr = [company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ')
   const addrLines = doc.splitTextToSize(addr || '', 110)
@@ -122,7 +122,7 @@ export async function generatePaymentReceiptPdf({
   doc.text(`Rs. ${Number(amount || 0).toLocaleString('en-IN')}/-`, ML + 3, boxY + 6.5)
 
   doc.setFont('helvetica', 'bold').setFontSize(9)
-  doc.text(`For ${company.name || 'TAB Elevators'}`, MR - 3, boxY + 9, { align: 'right' })
+  doc.text(`For ${company.name || ''}`, MR - 3, boxY + 9, { align: 'right' })
 
   try {
     const stamp = await getStampDataUri()

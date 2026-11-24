@@ -280,7 +280,8 @@ function renderTemplate(row, templateKey, config) {
     ? `<img src="${company.stampUrl}" alt="Stamp" style="max-height:48px;max-width:70px;object-fit:contain;opacity:.9;">`
     : ''
 
-  let templateHtml = storedTemplate.trim() || buildFallbackHtml(row, templateKey, company)
+  const useBuiltIn = templateKey === 'quotation' || templateKey === 'proforma'
+  let templateHtml = (useBuiltIn ? '' : storedTemplate.trim()) || buildFallbackHtml(row, templateKey, company)
 
   // ── Auto-migrate stored templates that have hardcoded terms/payment/schedule sections
   // Replaces the static sec-hdr blocks with dynamic placeholders so form data is used.
@@ -445,6 +446,10 @@ function buildQuotationStyleHtml(row, templateKey, company) {
   const lifts = row.numberOfLifts ? (Number(row.numberOfLifts) || 1) : 1
   const grandTotal = lifts > 1 ? (Number(row.grandTotal) || docTotal * lifts) : docTotal
   const gstPercentNum = Number(row.gstPercent) || 0
+  const paidSoFar = Array.isArray(row.paymentHistory) && row.paymentHistory.length
+    ? row.paymentHistory.reduce((a, p) => a + (Number(p.amount) || 0), 0)
+    : (Number(row.paidAmount) || 0)
+  const balanceDue = Math.max(0, grandTotal - paidSoFar)
   const subtotalBeforeGst = row.discountedSubtotal ?? row.subtotal ?? (docTotal - (row.gstAmount || 0))
   const addrLine1 = company.addressLine1 || company.address || ''
   const addrLine2 = company.addressLine2 || ''
@@ -501,7 +506,7 @@ function buildQuotationStyleHtml(row, templateKey, company) {
         ${addrLine1 ? `${addrLine1}<br>` : ''}
         ${addrLine2 ? `${addrLine2}<br>` : ''}
         ${cityLine ? `${cityLine}<br>` : ''}
-        <span class="co-contact-blue">Mob: ${company.phone || ''} &nbsp;|&nbsp; ${company.email || 'info@tabelevators.in'}</span>
+        <span class="co-contact-blue">Mob: ${company.phone || ''} &nbsp;|&nbsp; ${company.email || ''}</span>
         ${company.gst ? `<br><span>GSTIN: ${company.gst}</span>` : ''}
       </div>
     </div>
@@ -540,7 +545,7 @@ function buildQuotationStyleHtml(row, templateKey, company) {
         <tr><td colspan="5" style="text-align:right;font-weight:600;border:1px solid #000;padding:5px 8px;">GST (${gstPercentNum}%)</td><td style="text-align:right;font-weight:600;border:1px solid #000;padding:5px 8px;">${fc(row.gstAmount || 0)}</td></tr>
         ` : ''}
         <tr><td colspan="5" style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">TOTAL</td><td style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">${fc(docTotal)}</td></tr>
-        <tr><td colspan="5" style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">BALANCE TOTAL</td><td style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">${fc(grandTotal)}</td></tr>
+        <tr><td colspan="5" style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">BALANCE TOTAL</td><td style="text-align:right;font-weight:700;border:1px solid #000;padding:5px 8px;">${fc(balanceDue)}</td></tr>
       </tfoot>
     </table>
     <div class="amount-words">${numberToWords(grandTotal).toUpperCase()}</div>
@@ -555,7 +560,7 @@ function buildQuotationStyleHtml(row, templateKey, company) {
       </div>
       <div class="footer-customer-sig">Customer Signature</div>
     </div>
-    <div class="footer-website"><a href="https://www.tabelevators.in">www.tabelevators.in</a></div>
+    ${company.website ? `<div class="footer-website"><a href="${company.website}">${company.website.replace(/^https?:\/\//, '')}</a></div>` : ''}
   </div>
 </div>
 </body>
@@ -691,7 +696,7 @@ function buildTaxInvoiceHtml(row, company) {
       <div class="ti-copy-tag">Original for<br>Recipient</div>
       <div class="ti-coname">${company.name || ''}</div>
       ${addrFull ? `<div class="ti-addr">${addrFull}</div>` : ''}
-      <div class="ti-addr">Tel: ${company.phone || ''} &nbsp;|&nbsp; ${company.email || 'info@tabelevators.in'}</div>
+      <div class="ti-addr">Tel: ${company.phone || ''} &nbsp;|&nbsp; ${company.email || ''}</div>
       ${company.gst ? `<div class="ti-gstin">GSTIN: ${company.gst}</div>` : ''}
     </div>
     <div class="ti-title">Tax Invoice</div>
@@ -893,7 +898,7 @@ function buildFallbackHtml(row, templateKey, company) {
     ${addrLine1 ? `<div class="company-info">${addrLine1}</div>` : ''}
     ${addrLine2 ? `<div class="company-info">${addrLine2}</div>` : ''}
     ${cityLine ? `<div class="company-info">${cityLine}</div>` : ''}
-    <div class="company-info company-info-blue">Mob: ${company.phone || ''} | ${company.email || 'info@tabelevators.in'}</div>
+    <div class="company-info company-info-blue">Mob: ${company.phone || ''} | ${company.email || ''}</div>
     <div class="doc-title">${docTitle}</div>
     <div class="doc-meta">No: ${docNumber}</div>
     <div class="doc-meta">Date: ${formatDate(row.date || row.createdAt)}</div>
@@ -926,7 +931,7 @@ ${row.notes ? `<div class="notes"><strong>Notes:</strong> ${row.notes}</div>` : 
   </div>
   <div class="footer-customer-sig">Customer Signature</div>
 </div>
-<div class="footer-website"><a href="https://www.tabelevators.in">www.tabelevators.in</a></div>
+${company.website ? `<div class="footer-website"><a href="${company.website}">${company.website.replace(/^https?:\/\//, '')}</a></div>` : ''}
 </div>
 </div>
 </body>

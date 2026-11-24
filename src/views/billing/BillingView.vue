@@ -35,6 +35,10 @@
         <FileText :size="14" style="display:inline;margin-right:4px;" />
         Letterhead PDF
       </button>
+      <button :class="['tab-btn', activeTab === 'today' && 'active']" @click="activeTab = 'today'">
+        <ClipboardList :size="14" style="display:inline;margin-right:4px;" />
+        Today's Work
+      </button>
     </div>
 
     <div class="table-container" style="padding:20px;">
@@ -52,6 +56,7 @@
       <PurchaseOrdersTab v-else-if="activeTab === 'po'" />
       <TaxInvoicesTab v-else-if="activeTab === 'tax'" ref="taxTabRef" />
       <LetterheadTab v-else-if="activeTab === 'letterhead'" />
+      <TodayWorkPanel v-else-if="activeTab === 'today'" />
     </div>
   </div>
 </template>
@@ -65,6 +70,7 @@ import ProformaInvoicesTab from './tabs/ProformaInvoicesTab.vue'
 import PurchaseOrdersTab from './tabs/PurchaseOrdersTab.vue'
 import TaxInvoicesTab from './tabs/TaxInvoicesTab.vue'
 import LetterheadTab from './tabs/LetterheadTab.vue'
+import TodayWorkPanel from '@/components/ui/TodayWorkPanel.vue'
 import { useTabBackHandler } from '@/composables/useTabBackHandler'
 
 const activeTab = ref('installation')

@@ -17,6 +17,7 @@
 
     <!-- Toast notifications -->
     <ToastContainer />
+    <TodayWorkPopup v-if="auth.isLoggedIn" />
 
     <!-- Mobile sidebar overlay — also swallows pull-to-refresh touches -->
     <div
@@ -36,6 +37,7 @@ import { useAuthStore } from '@/stores/auth'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
 import ToastContainer from '../ui/ToastContainer.vue'
+import TodayWorkPopup from '../ui/TodayWorkPopup.vue'
 
 const ui = useUIStore()
 const auth = useAuthStore()

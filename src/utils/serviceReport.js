@@ -98,7 +98,7 @@ export async function generateServiceReportPdf({
   let y = 14
   // Company name — left
   doc.setFont('helvetica', 'bold').setFontSize(20).setTextColor(15, 23, 42)
-  doc.text(company.name || 'TAB Elevators', ML, y)
+  doc.text(company.name || '', ML, y)
 
   // Company address / phone — left, stacked below the name (logo stays
   // isolated in its own top-right corner so long addresses can never collide with it).
@@ -110,7 +110,7 @@ export async function generateServiceReportPdf({
   y += 5
   const addrLines = doc.splitTextToSize(addr, 190)
   addrLines.slice(0, 2).forEach(l => { doc.text(l, ML, y); y += 3.6 })
-  const contactLine = `Mob: 9545802273 / 9765569919   |   ${company.email || 'tabelevatorsandsystems@gmail.com'}`
+  const contactLine = `Mob: ${company.phone || ''}   |   ${company.email || ''}`
   doc.text(contactLine, ML, y); y += 3.6
 
   y += 3

@@ -1378,9 +1378,14 @@
     </div>
     <template #footer>
       <button class="btn-secondary" @click="payModal = false">Cancel</button>
-      <button class="btn-success" @click="savePayment" :disabled="amcSaving">
-        <span>Save Payment</span>
-      </button>
+      <SwipeToConfirm
+          ref="paySwipeRef"
+          style="width:100%;"
+          label="Swipe to log payment"
+          done-label="Payment logged"
+          :loading="amcSaving"
+          @confirm="savePayment"
+        />
     </template>
   </AppModal>
 
@@ -3692,7 +3697,11 @@ async function saveEditPay() {
   finally { amcSaving.value = false }
 }
 
+const paySwipeRef = ref(null)
 async function savePayment() {
+  try { await _savePayment() } finally { paySwipeRef.value?.reset() }
+}
+async function _savePayment() {
   if (!payTarget.value || !payForm.value.amount || payForm.value.amount <= 0) {
     ui.error('Enter a valid amount')
     return

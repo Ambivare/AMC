@@ -173,6 +173,7 @@
           <select v-model.number="form.gstPercent" class="input" @change="recalc">
             <option :value="0">0%</option>
             <option :value="5">5%</option>
+            <option :value="9">9%</option>
             <option :value="12">12%</option>
             <option :value="18">18%</option>
           </select>
@@ -312,9 +313,14 @@
       </div>
       <template #footer>
         <button class="btn-secondary" @click="showPaymentModal = false">Close</button>
-        <button class="btn-success" :disabled="saving || !paymentForm.paidAmount" @click="savePayment">
-          <CreditCard :size="14" /> {{ saving ? 'Saving…' : 'Add Payment' }}
-        </button>
+        <SwipeToConfirm
+          ref="paySwipeRef"
+          style="width:100%;"
+          label="Swipe to log payment"
+          done-label="Payment logged"
+          :loading="saving"
+          @confirm="savePayment"
+        />
       </template>
     </AppModal>
 
@@ -623,7 +629,11 @@ function openPayment(row) {
   showPaymentModal.value = true
 }
 
+const paySwipeRef = ref(null)
 async function savePayment() {
+  try { await _savePayment() } finally { paySwipeRef.value?.reset() }
+}
+async function _savePayment() {
   const amount = Number(paymentForm.value.paidAmount) || 0
   if (!amount) { ui.error('Enter an amount to record.'); return }
   const existing = paymentTarget.value.paymentHistory || []
