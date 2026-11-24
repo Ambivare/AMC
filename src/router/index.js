@@ -31,6 +31,7 @@ const routes = [
       { path: 'maintenance',     name: 'Maintenance',     component: () => import('@/views/maintenance/MaintenanceView.vue'),       meta: { tab: 'maintenance' } },
       { path: 'complaints',      name: 'Complaints',      component: () => import('@/views/complaints/ComplaintsView.vue'),         meta: { tab: 'complaints' } },
       { path: 'amc',             name: 'AMC',             component: () => import('@/views/amc/AMCView.vue'),                       meta: { tab: 'amc' } },
+      { path: 'today-work',      name: 'TodayWork',       component: () => import('@/views/TodayWorkView.vue'),                     meta: { tab: 'billing' } },
       { path: 'billing',         name: 'Billing',         component: () => import('@/views/billing/BillingView.vue'),               meta: { tab: 'billing' } },
       { path: 'projects',        name: 'Projects',        component: () => import('@/views/projects/ProjectsView.vue'),             meta: { tab: 'projects' } },
       { path: 'hr',              name: 'HR',              component: () => import('@/views/hr/HRView.vue'),                         meta: { tab: 'hr' } },

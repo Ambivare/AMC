@@ -223,6 +223,7 @@ const navGroups = [
     items: [
       { to: '/dashboard',  tab: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
       { to: '/reminders',  tab: 'reminders',  label: 'Reminders',  icon: Bell },
+      { to: '/today-work', tab: 'billing',    label: "Today's Work", icon: ClipboardList },
     ],
   },
   {
